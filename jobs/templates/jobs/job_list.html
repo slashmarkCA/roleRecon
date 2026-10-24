@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>roleRecon</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #ffffff; --panel: #f6f7f9; --line: #d9dde3; --text: #1b1f24;
+      --muted: #5b6470; --accent: #2457c5; --sel: #e4ecfb; --good: #1c7c3a; --warn: #a15c00;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #14171b; --panel: #1b2026; --line: #2d343c; --text: #e6e9ed;
+        --muted: #98a1ad; --accent: #7aa2ff; --sel: #243049; --good: #5fd08a; --warn: #f0b35a;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body { display: flex; flex-direction: column; background: var(--bg); color: var(--text);
+           font: 15px/1.45 system-ui, sans-serif; }
+    a { color: var(--accent); text-decoration: none; }
+    header { padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+    header h1 { font-size: 17px; margin: 0 16px 0 0; display: inline-block; }
+    .tabs { display: inline-flex; flex-wrap: wrap; gap: 6px; vertical-align: middle; }
+    .tabs a { padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--text); }
+    .tabs a.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .tabs span { opacity: .75; margin-left: 4px; }
+    form.filters { display: inline-flex; gap: 6px; margin-left: 16px; vertical-align: middle; flex-wrap: wrap; }
+    input, select, button { font: inherit; padding: 4px 8px; border: 1px solid var(--line);
+                            border-radius: 6px; background: var(--bg); color: var(--text); }
+    button { cursor: pointer; }
+    main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(300px, 38%) 1fr; }
+    .list { overflow-y: auto; border-right: 1px solid var(--line); }
+    .row { display: block; padding: 10px 14px; border-bottom: 1px solid var(--line); color: var(--text); }
+    .row:hover { background: var(--panel); }
+    .row.sel { background: var(--sel); }
+    .row .t { font-weight: 600; }
+    .row .m { color: var(--muted); font-size: 13px; }
+    .badge { display: inline-block; padding: 0 7px; border-radius: 999px; font-size: 12px;
+             border: 1px solid var(--line); margin-left: 6px; }
+    .badge.score { color: var(--good); border-color: var(--good); }
+    .badge.flag { color: var(--warn); border-color: var(--warn); }
+    .detail { overflow-y: auto; padding: 18px 24px; }
+    .detail h2 { margin: 0 0 4px; font-size: 21px; }
+    .meta { color: var(--muted); margin-bottom: 12px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 16px; align-items: center; }
+    .actions form { margin: 0; }
+    .reason { padding: 8px 12px; border: 1px solid var(--warn); border-radius: 6px; color: var(--warn); margin-bottom: 12px; }
+    .desc { white-space: pre-wrap; max-width: 80ch; }
+    .empty { padding: 40px 24px; color: var(--muted); }
+    @media (max-width: 800px) { main { grid-template-columns: 1fr; } .list { max-height: 40vh; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>roleRecon</h1>
+    <nav class="tabs">
+      {% for s in statuses %}
+        <a href="?status={{ s.value }}" class="{% if s.value == status %}on{% endif %}">{{ s.label }}<span>{{ s.count }}</span></a>
+      {% endfor %}
+      <a href="?status=all" class="{% if status == 'all' %}on{% endif %}">All<span>{{ total }}</span></a>
+    </nav>
+    <form class="filters" method="get">
+      <input type="hidden" name="status" value="{{ status }}">
+      <select name="employer">
+        <option value="">All employers</option>
+        {% for e in employers %}
+          <option value="{{ e.pk }}" {% if e.pk|stringformat:"s" == employer_id %}selected{% endif %}>{{ e.name }}</option>
+        {% endfor %}
+      </select>
+      <input type="search" name="q" value="{{ q }}" placeholder="Search title or description">
+      <button type="submit">Filter</button>
+    </form>
+    <a href="/admin/" style="float:right">Admin</a>
+  </header>
+
+  <main>
+    <section class="list">
+      {% for job in jobs %}
+        <a class="row{% if selected and selected.pk == job.pk %} sel{% endif %}"
+           href="?{{ base_qs }}&amp;job={{ job.pk }}">
+          <div class="t">{{ job.title }}{% if job.score %}<span class="badge score">{{ job.score }}</span>{% endif %}</div>
+          <div class="m">
+            {{ job.company|default:job.employer.name }} &middot; {{ job.location|default:"location unknown" }}
+            {% for f in job.flags %}<span class="badge flag">{{ f }}</span>{% endfor %}
+          </div>
+          {% if job.status == 'filtered' %}<div class="m">{{ job.filter_reason }}</div>{% endif %}
+        </a>
+      {% empty %}
+        <div class="empty">No jobs match this view.</div>
+      {% endfor %}
+    </section>
+
+    <section class="detail">
+      {% if selected %}
+        <h2>{{ selected.title }}</h2>
+        <div class="meta">
+          {{ selected.company|default:selected.employer.name }} &middot; {{ selected.location|default:"location unknown" }}
+          {% if selected.employment_type %}&middot; {{ selected.employment_type }}{% endif %}
+          {% if selected.work_mode %}&middot; {{ selected.work_mode }}{% endif %}
+          {% if selected.salary_text %}&middot; {{ selected.salary_text }}{% endif %}
+          {% if selected.posted_at %}&middot; posted {{ selected.posted_at|date:"M j, Y" }}{% endif %}
+          &middot; status: <strong>{{ selected.get_status_display }}</strong>
+          {% if selected.score %}&middot; score {{ selected.score }}{% endif %}
+          {% for f in selected.flags %}<span class="badge flag">{{ f }}</span>{% endfor %}
+        </div>
+        {% if selected.status == 'filtered' %}
+          <div class="reason">Filtered out: {{ selected.filter_reason }}</div>
+        {% endif %}
+        <div class="actions">
+          <a href="{{ selected.url }}" target="_blank" rel="noopener noreferrer">Open posting &#8599;</a>
+          <form method="post" action="{% url 'set_status' selected.pk %}">{% csrf_token %}
+            <input type="hidden" name="qs" value="{{ full_qs }}">
+            <input type="hidden" name="status" value="saved"><button>Save</button></form>
+          <form method="post" action="{% url 'set_status' selected.pk %}">{% csrf_token %}
+            <input type="hidden" name="qs" value="{{ full_qs }}">
+            <input type="hidden" name="status" value="applied"><button>Applied</button></form>
+          <form method="post" action="{% url 'set_status' selected.pk %}">{% csrf_token %}
+            <input type="hidden" name="qs" value="{{ full_qs }}">
+            <input type="hidden" name="status" value="ignored"><button>Ignore</button></form>
+          {% if selected.status == 'saved' or selected.status == 'ignored' %}
+            <form method="post" action="{% url 'set_status' selected.pk %}">{% csrf_token %}
+              <input type="hidden" name="qs" value="{{ full_qs }}">
+              <input type="hidden" name="status" value="new"><button>Back to New</button></form>
+          {% endif %}
+        </div>
+        <div class="desc">{{ selected.description|default:"No description stored." }}</div>
+      {% else %}
+        <div class="empty">Select a job on the left.</div>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

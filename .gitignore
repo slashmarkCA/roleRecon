@@ -1,0 +1,14 @@
+.venv/
+.idea/
+__pycache__/
+*.pyc
+.env
+search_config.json
+linkedin_config.json
+*.local.md
+data/
+.vscode/
+.gemini/
+.agents/
+db.sqlite3
+.pytest_cache/

@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 400" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title id="t">roleRecon pipeline</title>
+  <desc id="d">Eight steps from employer career sites to the local web page: fetch the job list, skip known jobs, prefilter by title, fetch details, run the filters, save the job, and browse it.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4a5568"/>
+    </marker>
+    <style>
+      .box { fill: #e8f0fe; stroke: #4a78c8; stroke-width: 1.5; }
+      .db { fill: #e6f4ea; stroke: #2e7d46; stroke-width: 1.5; }
+      .t { font-size: 15px; font-weight: 600; fill: #1b1f24; }
+      .s { font-size: 12.5px; fill: #3b4350; }
+      .note { font-size: 13px; fill: #3b4350; }
+      .arrow { stroke: #4a5568; stroke-width: 1.8; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect width="100%" height="100%" fill="#ffffff"/>
+
+  <!-- Row 1 -->
+  <rect class="box" x="30" y="40" width="190" height="84" rx="8"/>
+  <text class="t" x="44" y="66">1. Career sites</text>
+  <text class="s" x="44" y="86">UltiPro, Workday, Greenhouse,</text>
+  <text class="s" x="44" y="104">BambooHR, Oracle, Job Bank</text>
+
+  <rect class="box" x="270" y="40" width="190" height="84" rx="8"/>
+  <text class="t" x="284" y="66">2. Adapter: fetch_list</text>
+  <text class="s" x="284" y="86">scrapers/&lt;platform&gt;.py</text>
+  <text class="s" x="284" y="104">returns standard JobRecords</text>
+
+  <rect class="box" x="510" y="40" width="190" height="84" rx="8"/>
+  <text class="t" x="524" y="66">3. Skip known jobs</text>
+  <text class="s" x="524" y="86">URL already in the database?</text>
+  <text class="s" x="524" y="104">yes: only update last_seen</text>
+
+  <rect class="box" x="750" y="40" width="190" height="84" rx="8"/>
+  <text class="t" x="764" y="66">4. Title prefilter</text>
+  <text class="s" x="764" y="86">excluded / no include keyword</text>
+  <text class="s" x="764" y="104">final: no detail request</text>
+
+  <path class="arrow" d="M220,82 H266"/>
+  <path class="arrow" d="M460,82 H506"/>
+  <path class="arrow" d="M700,82 H746"/>
+
+  <!-- Elbow from row 1 to row 2 -->
+  <path class="arrow" d="M845,124 V167 H125 V206"/>
+  <text class="note" x="480" y="160" text-anchor="middle">new jobs that survive the title check</text>
+
+  <!-- Row 2 -->
+  <rect class="box" x="30" y="210" width="190" height="84" rx="8"/>
+  <text class="t" x="44" y="236">5. Adapter: fetch_detail</text>
+  <text class="s" x="44" y="256">full description, location,</text>
+  <text class="s" x="44" y="274">pay, employment type</text>
+
+  <rect class="box" x="270" y="210" width="190" height="84" rx="8"/>
+  <text class="t" x="284" y="236">6. Filters</text>
+  <text class="s" x="284" y="256">rules/filters.py</text>
+  <text class="s" x="284" y="274">location, exclusions, score</text>
+
+  <rect class="db" x="510" y="210" width="190" height="84" rx="8"/>
+  <text class="t" x="524" y="236">7. Save a Job row</text>
+  <text class="s" x="524" y="256">status new or filtered</text>
+  <text class="s" x="524" y="274">+ reason, score, flags</text>
+
+  <rect class="box" x="750" y="210" width="190" height="84" rx="8"/>
+  <text class="t" x="764" y="236">8. Web page</text>
+  <text class="s" x="764" y="256">http://127.0.0.1:8000/</text>
+  <text class="s" x="764" y="274">save, applied, ignore</text>
+
+  <path class="arrow" d="M220,252 H266"/>
+  <path class="arrow" d="M460,252 H506"/>
+  <path class="arrow" d="M700,252 H746"/>
+
+  <text class="note" x="30" y="340">Run the whole thing with:  python manage.py scrape</text>
+  <text class="note" x="30" y="364">Re-apply edited filters to stored jobs later (no network):  python manage.py refilter</text>
+</svg>

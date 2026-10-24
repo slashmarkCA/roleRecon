@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 540" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title id="t">Database schema: Employer and Job</title>
+  <desc id="d">Two tables. One Employer has many Jobs; each Job row stores the standard job record plus its status, filter reason, score and flags.</desc>
+  <defs>
+    <style>
+      .head { fill: #4a78c8; }
+      .body { fill: #f3f6fd; stroke: #4a78c8; stroke-width: 1.5; }
+      .ht { font-size: 15px; font-weight: 600; fill: #ffffff; }
+      .f { font-size: 13px; font-weight: 600; fill: #1b1f24; }
+      .m { font-size: 12.5px; fill: #3b4350; }
+      .rel { stroke: #4a5568; stroke-width: 1.8; fill: none; }
+      .lbl { font-size: 13px; font-weight: 600; fill: #1b1f24; }
+    </style>
+  </defs>
+  <rect width="100%" height="100%" fill="#ffffff"/>
+
+  <!-- Employer -->
+  <rect class="body" x="40" y="40" width="300" height="218" rx="8"/>
+  <rect class="head" x="40" y="40" width="300" height="36" rx="8"/>
+  <text class="ht" x="54" y="64">Employer  (jobs_employer)</text>
+  <text class="f" x="54" y="93">id</text><text class="m" x="150" y="93">primary key</text>
+  <text class="f" x="54" y="119">name</text><text class="m" x="150" y="119">unique, e.g. Acme Corp</text>
+  <text class="f" x="54" y="145">adapter</text><text class="m" x="150" y="145">platform code</text>
+  <text class="f" x="54" y="171">board_url</text><text class="m" x="150" y="171">career page or feed URL</text>
+  <text class="f" x="54" y="197">options</text><text class="m" x="150" y="197">JSON settings</text>
+  <text class="f" x="54" y="223">active</text><text class="m" x="150" y="223">scrape it, or skip it</text>
+  <text class="f" x="54" y="249">notes</text><text class="m" x="150" y="249">free text</text>
+
+  <!-- relationship -->
+  <path class="rel" d="M340,100 H470"/>
+  <text class="lbl" x="346" y="92">1</text>
+  <text class="lbl" x="428" y="92">many</text>
+  <text class="m" x="352" y="124">one employer</text>
+  <text class="m" x="352" y="140">has many jobs</text>
+
+  <!-- Job -->
+  <rect class="body" x="470" y="40" width="440" height="468" rx="8"/>
+  <rect class="head" x="470" y="40" width="440" height="36" rx="8"/>
+  <text class="ht" x="484" y="64">Job  (jobs_job)</text>
+  <text class="f" x="484" y="93">id</text><text class="m" x="620" y="93">primary key</text>
+  <text class="f" x="484" y="117">employer</text><text class="m" x="620" y="117">links to Employer (foreign key)</text>
+  <text class="f" x="484" y="141">source_job_id</text><text class="m" x="620" y="141">the site's own id</text>
+  <text class="f" x="484" y="165">url</text><text class="m" x="620" y="165">unique: how known jobs are spotted</text>
+  <text class="f" x="484" y="189">title</text><text class="m" x="620" y="189">posting title</text>
+  <text class="f" x="484" y="213">company</text><text class="m" x="620" y="213">only for many-employer feeds</text>
+  <text class="f" x="484" y="237">location</text><text class="m" x="620" y="237">text (or Employer override)</text>
+  <text class="f" x="484" y="261">work_mode</text><text class="m" x="620" y="261">remote / hybrid / on-site text</text>
+  <text class="f" x="484" y="285">employment_type</text><text class="m" x="620" y="285">full time, contract ...</text>
+  <text class="f" x="484" y="309">salary_text</text><text class="m" x="620" y="309">pay, when published</text>
+  <text class="f" x="484" y="333">posted_at</text><text class="m" x="620" y="333">when the employer posted it</text>
+  <text class="f" x="484" y="357">description</text><text class="m" x="620" y="357">full text (may be empty)</text>
+  <text class="f" x="484" y="381">status</text><text class="m" x="620" y="381">new, saved, applied, ignored, filtered</text>
+  <text class="f" x="484" y="405">filter_reason</text><text class="m" x="620" y="405">why a filtered job was rejected</text>
+  <text class="f" x="484" y="429">score</text><text class="m" x="620" y="429">preferred keywords found</text>
+  <text class="f" x="484" y="453">flags</text><text class="m" x="620" y="453">list, e.g. arrangement unclear</text>
+  <text class="f" x="484" y="477">first_seen</text><text class="m" x="620" y="477">when we first stored it</text>
+  <text class="f" x="484" y="501">last_seen</text><text class="m" x="620" y="501">refreshed while still listed</text>
+</svg>

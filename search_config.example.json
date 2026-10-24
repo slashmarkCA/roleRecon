@@ -1,0 +1,38 @@
+{
+  "_comment": "Copy to search_config.json (gitignored) and fill in your own values. Keys starting with _ are ignored by the code. Duplicate list entries are removed automatically (case-insensitive).",
+
+  "titleMatch": {
+    "_includeKeywords_comment": "A job title must contain at least one of these words/phrases. An empty list keeps every title.",
+    "includeKeywords": ["analyst", "qa", "test"],
+    "_wholeWords_comment": "true = 'java' will NOT match 'javascript' and 'intern' will NOT match 'internal'. false = plain substring matching.",
+    "wholeWords": true
+  },
+
+  "locations": {
+    "_accept_comment": "A job passes if its location (or work mode) contains at least one of these places. Use 'Remote' to accept remote jobs. An empty list accepts every location. A job with no location at all is kept and flagged 'location unclear'.",
+    "accept": ["Your City", "Nearby City", "Remote"]
+  },
+
+  "filters": {
+    "_excludedEmployers_comment": "Only useful for sources that return many companies (LinkedIn, aggregators). Harmless as an empty list for named-employer boards.",
+    "excludedEmployers": [],
+    "excludedTitleKeywords": ["co-op", "intern", "internship"],
+    "excludedEmploymentTypes": [],
+    "_descriptionExclusions_comment": "Any match anywhere in the full job description rejects the job. To exclude only part of a product, list the specific phrase (e.g. 'Guidewire ClaimCenter' instead of 'Guidewire').",
+    "descriptionExclusions": {
+      "languageRequirements": [],
+      "technicalRequirements": [],
+      "platformExclusions": [],
+      "compensationTypes": []
+    },
+    "_preferredKeywords_comment": "Not a filter. Each match adds 1 to a job's score so better matches can be ranked higher.",
+    "preferredKeywords": []
+  },
+
+  "workArrangement": {
+    "_comment": "Applies when a job is clearly remote, hybrid or on-site. Unclear jobs are kept and flagged.",
+    "acceptRemote": true,
+    "acceptHybrid": true,
+    "acceptOnsite": true
+  }
+}
