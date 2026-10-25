@@ -1,5 +1,6 @@
 from urllib.parse import urlencode
 
+from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -10,6 +11,7 @@ from .models import Employer, Job
 LIST_LIMIT = 200
 
 
+@login_required(login_url="/admin/login/")
 def job_list(request):
     """Two-pane page: filtered job list on the left, selected job on the right."""
     status = request.GET.get("status", Job.Status.NEW.value)
@@ -52,6 +54,7 @@ def job_list(request):
 
 
 @require_POST
+@login_required(login_url="/admin/login/")
 def set_status(request, pk):
     job = get_object_or_404(Job, pk=pk)
     new_status = request.POST.get("status", "")

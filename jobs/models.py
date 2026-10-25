@@ -13,6 +13,7 @@ class Employer(models.Model):
         GREENHOUSE = "greenhouse", "Greenhouse"
         SUCCESSFACTORS = "successfactors", "SuccessFactors"
         PHENOM = "phenom", "Phenom"
+        WORKABLE = "workable", "Workable"
         LEVER = "lever", "Lever"
         HTML = "html", "Plain HTML page"
         BROWSER = "browser", "Browser-rendered page"

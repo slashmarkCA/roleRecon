@@ -37,6 +37,9 @@ python manage.py scrape                              # fetch + filter + save
 python manage.py runserver                           # browse at http://127.0.0.1:8000/
 ```
 
+The job page requires login. Use the same Django account created for the admin; if you are not
+logged in, the page redirects to the admin login and returns you to the job page afterward.
+
 `DATABASE_URL` should be Supabase's **session pooler** connection string; the reasons are in
 [docs/schema.md](docs/schema.md). `SECRET_KEY` is Django's signing key; generate one with the
 command shown in `.env.example`. Set `DEBUG=True` in `.env` for local development (it is off

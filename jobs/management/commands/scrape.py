@@ -9,7 +9,7 @@ from jobs.models import Employer, Job
 from rules.filters import evaluate, load_config
 from scrapers import (
     bamboohr, erecruit, greenhouse, jobbank, oracle_hcm, phenom, successfactors, ultipro,
-    workday,
+    workable, workday,
 )
 
 ADAPTERS = {
@@ -22,6 +22,7 @@ ADAPTERS = {
     "erecruit": erecruit,
     "successfactors": successfactors,
     "phenom": phenom,
+    "workable": workable,
 }
 
 DETAIL_FIELDS = ("description", "location", "work_mode", "employment_type", "salary_text", "posted_at")

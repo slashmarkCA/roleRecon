@@ -34,8 +34,10 @@ Everything starts with `python manage.py scrape`
    reason stored). Rejected jobs are stored on purpose, so they are not fetched again next
    time and so you can see why they were rejected.
 8. **Browse.** `python manage.py runserver` serves the two-pane page at
-   `http://127.0.0.1:8000/` (code in [`jobs/views.py`](../jobs/views.py) and
-   [`jobs/templates/jobs/job_list.html`](../jobs/templates/jobs/job_list.html)).
+   `http://127.0.0.1:8000/`. Login is required; unauthenticated visitors are redirected to the
+   Django admin login and returned to the job page after signing in. The page and its status
+   updates require an authenticated Django account (code in [`jobs/views.py`](../jobs/views.py)
+   and [`jobs/templates/jobs/job_list.html`](../jobs/templates/jobs/job_list.html)).
 
 If a job has no description stored (because it was rejected on its title, or the source has
 none), it gets the flag `no description`.
@@ -93,6 +95,7 @@ add an employer, find its platform's row and paste a URL shaped like the third c
 | `erecruit.py` | Virtuo HR eRecruit (MediSolution) | `<host>/erecruit/...` (any page under it, or the `RSS.aspx` feed) | The site's `RSS.aspx` feed. It is malformed (the real postings sit in an HTML block after the closed `<rss>`), so it is read with a pattern, not an XML parser. It includes full descriptions, so no detail request is needed. |
 | `successfactors.py` | SAP SuccessFactors | `<host>/<site>/go/Category-Page-<name>/<id>/` | The category's public RSS feed at `/services/rss/category/?catid=<id>`. It includes full descriptions, so no detail request is needed. |
 | `phenom.py` | Phenom CareerConnect | `<host>/<country>/<language>/search-results` | The `/widgets` JSON endpoint returns paginated job records with description teasers; each job page exposes the full description as `JobPosting` JSON-LD. Known limitation: the search request currently has a Canada/Ontario location filter written into the code. |
+| `workable.py` | Workable | `apply.workable.com/<account>` | Public `/jobs.md` list and per-job `/jobs/view/<id>.md` detail pages. |
 
 How these endpoints were found: open the career site with the browser's developer tools on the
 Network tab and watch which request returns the job data. Prefer a JSON endpoint; then static
@@ -124,4 +127,6 @@ You change status with the buttons on the web page, or in bulk in the admin.
 - **AI scoring.** Scoring today is keyword counting only.
 - **Closed-job detection.** A job that disappears from a board is not marked closed; its
   `last_seen` simply stops updating.
-- **A login on the web page.** It only listens on `127.0.0.1`, so only this machine can reach it.
+- **Network deployment.** The job page requires login and the development server defaults to
+  `127.0.0.1`; before deploying beyond this machine, configure HTTPS, trusted hosts and secure
+  cookies using Django's deployment checklist.
