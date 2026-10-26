@@ -14,7 +14,7 @@ One row per career site (or feed) that is checked.
 | Field | Meaning |
 |---|---|
 | `name` | Unique display name, e.g. `Acme Corp`. |
-| `adapter` | Which adapter handles it, chosen from a list defined in `jobs/models.py` (one entry per module in `scrapers/`; see the table in [architecture.md](architecture.md)). A few entries (`lever`, `html`, `browser`, `linkedin`) are reserved and have no adapter yet. |
+| `adapter` | Which adapter handles it, chosen from the registry in `scrapers/registry.py` (see the table in [architecture.md](architecture.md)). A few entries (`lever`, `html`, `browser`, `linkedin`) are reserved and have no adapter yet. |
 | `board_url` | The career page or feed URL. Each adapter documents what it expects; extra parts such as `?query` strings and `/details/...` are ignored where noted. |
 | `options` | JSON settings for this employer. Today: `{"location_override": "Toronto"}`. Use `{}` when there are none. |
 | `active` | Untick to skip an employer without deleting it or its jobs. |
@@ -36,6 +36,14 @@ One row per posting, in the standard shape every adapter produces.
 | `score` | How many of your preferred keywords were found. Always 0 for rejected jobs. |
 | `flags` | A list of warnings such as `arrangement unclear`, `location unclear`, `no description`. |
 | `first_seen`, `last_seen` | When the job was first stored, and when a scrape last saw it still listed. |
+
+## Run history
+
+`ScrapeRun` records each scrape or refilter, including its queued/running/finished status,
+timestamps, progress and summary. At most one run can be queued or active. Each run has
+`EmployerRunResult` rows with the employer name, counts, status, summary and safe error
+description. The browser reads these rows to show progress and report problems. Detailed
+diagnostics are kept in the local rotating log rather than the database.
 
 ## Migrations, in plain words
 

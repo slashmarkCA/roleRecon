@@ -50,6 +50,12 @@
     .reason { padding: 8px 12px; border: 1px solid var(--warn); border-radius: 6px; color: var(--warn); margin-bottom: 12px; }
     .desc { white-space: pre-wrap; max-width: 80ch; }
     .empty { padding: 40px 24px; color: var(--muted); }
+    .run-tools { padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+    .run-tools form { display: inline-block; margin-right: 6px; }
+    .run-tools button:disabled { cursor: wait; opacity: .65; }
+    #run-progress { margin: 8px 0; max-width: 520px; }
+    #run-results { margin: 4px 0; padding-left: 20px; }
+    #run-refresh { display: none; margin-left: 8px; }
     @media (max-width: 800px) { main { grid-template-columns: 1fr; } .list { max-height: 40vh; } }
   </style>
 </head>
@@ -75,6 +81,29 @@
     </form>
     <a href="/admin/" style="float:right">Admin</a>
   </header>
+
+  <section class="run-tools" aria-label="Scrape and filter jobs">
+    <form method="post" action="{% url 'start_run' %}">
+      {% csrf_token %}<input type="hidden" name="operation" value="scrape">
+      <button type="submit">Scrape employers</button>
+    </form>
+    <form method="post" action="{% url 'start_run' %}">
+      {% csrf_token %}<input type="hidden" name="operation" value="refilter">
+      <button type="submit">Reapply filters</button>
+    </form>
+    <a id="run-refresh" href="/">Refresh job list</a>
+    <div id="run-panel" role="status" aria-live="polite"
+         data-run-id="{% if latest_run %}{{ latest_run.pk }}{% endif %}"
+         data-status-url="{% if latest_run %}{% url 'run_status' latest_run.pk %}{% endif %}">
+      <span id="run-message">
+        {% if latest_run %}Latest: {{ latest_run.get_operation_display }} —
+          {{ latest_run.get_status_display }}{% if latest_run.summary %}: {{ latest_run.summary }}{% endif %}
+        {% else %}No scrape or refilter runs yet.{% endif %}
+      </span>
+      <div><progress id="run-progress" value="0" max="1"></progress></div>
+      <ul id="run-results"></ul>
+    </div>
+  </section>
 
   <main>
     <section class="list">
@@ -132,5 +161,89 @@
       {% endif %}
     </section>
   </main>
+  <script>
+    const runPanel = document.getElementById("run-panel");
+    const runMessage = document.getElementById("run-message");
+    const progress = document.getElementById("run-progress");
+    const resultList = document.getElementById("run-results");
+    const refreshLink = document.getElementById("run-refresh");
+    const runButtons = [...document.querySelectorAll(".run-tools button")];
+    let polling = false;
+
+    function showRun(data) {
+      const operation = data.operation === "scrape" ? "Scrape" : "Refilter";
+      runMessage.textContent = `${operation}: ${data.status} — ${data.progress_message || data.summary}`;
+      progress.max = Math.max(data.progress_total, 1);
+      progress.value = data.progress_current;
+      resultList.replaceChildren();
+      for (const result of data.results || []) {
+        const item = document.createElement("li");
+        item.textContent = `${result.employer}: ${result.status} — ${result.summary || result.error}`;
+        resultList.append(item);
+      }
+      const active = data.status === "queued" || data.status === "running";
+      runButtons.forEach(button => button.disabled = active);
+      refreshLink.style.display = active ? "none" : "inline";
+    }
+
+    async function readRun() {
+      const response = await fetch(runPanel.dataset.statusUrl, {
+        headers: {"Accept": "application/json"},
+        credentials: "same-origin"
+      });
+      if (!response.ok) throw new Error(`Run status request failed (${response.status})`);
+      return response.json();
+    }
+
+    async function pollRun() {
+      if (polling) return;
+      polling = true;
+      try {
+        while (runPanel.dataset.statusUrl) {
+          const data = await readRun();
+          showRun(data);
+          if (data.status !== "queued" && data.status !== "running") break;
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      } catch (error) {
+        runMessage.textContent = `Could not read run status: ${error.message}`;
+        runButtons.forEach(button => button.disabled = false);
+      } finally {
+        polling = false;
+      }
+    }
+
+    for (const form of document.querySelectorAll(".run-tools form")) {
+      form.addEventListener("submit", async event => {
+        event.preventDefault();
+        runButtons.forEach(button => button.disabled = true);
+        runMessage.textContent = "Requesting run…";
+        try {
+          const response = await fetch(form.action, {
+            method: "POST",
+            body: new FormData(form),
+            headers: {"Accept": "application/json"},
+            credentials: "same-origin"
+          });
+          const data = await response.json();
+          if (!response.ok && response.status !== 409) {
+            throw new Error(data.error || `Request failed (${response.status})`);
+          }
+          if (data.run_id) {
+            runPanel.dataset.runId = data.run_id;
+            runPanel.dataset.statusUrl = data.status_url;
+            pollRun();
+          } else {
+            throw new Error(data.error || "The run could not be queued.");
+          }
+        } catch (error) {
+          runMessage.textContent = error.message;
+          runButtons.forEach(button => button.disabled = false);
+        }
+      });
+    }
+
+    if (runPanel.dataset.runId) pollRun();
+  </script>
 </body>
 </html>

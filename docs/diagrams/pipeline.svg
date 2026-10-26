@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 400" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
   <title id="t">roleRecon pipeline</title>
-  <desc id="d">Eight steps from employer career sites to the local web page: fetch the job list, skip known jobs, prefilter by title, fetch details, run the filters, save the job, and browse it.</desc>
+  <desc id="d">Eight steps from employer career sites to the local web page: fetch the job list, skip known jobs, prefilter by title, fetch details, run the filters, save the job, and browse it. Browser-triggered runs are queued in the database and processed by a local worker.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path class="mk" d="M0,0 L10,5 L0,10 z" fill="#4a5568"/>
@@ -79,4 +79,5 @@
 
   <text class="note" x="30" y="340">Run the whole thing with:  python manage.py scrape</text>
   <text class="note" x="30" y="364">Re-apply edited filters to stored jobs later (no network):  python manage.py refilter</text>
+  <text class="note" x="30" y="394">Browser buttons queue runs in the database; run manage.py run_job_worker to process them and report progress.</text>
 </svg>

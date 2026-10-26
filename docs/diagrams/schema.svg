@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 540" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
-  <title id="t">Database schema: Employer and Job</title>
-  <desc id="d">Two tables. One Employer has many Jobs; each Job row stores the standard job record plus its status, filter reason, score and flags.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 880" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title id="t">Database schema: employers, jobs and runs</title>
+  <desc id="d">Employer has many Jobs. ScrapeRun has many EmployerRunResults. Run results retain employer names and counts, and link to an Employer when it still exists.</desc>
   <defs>
     <style>
       .head { fill: #4a78c8; }
@@ -61,4 +61,37 @@
   <text class="f" x="484" y="453">flags</text><text class="m" x="620" y="453">list, e.g. arrangement unclear</text>
   <text class="f" x="484" y="477">first_seen</text><text class="m" x="620" y="477">when we first stored it</text>
   <text class="f" x="484" y="501">last_seen</text><text class="m" x="620" y="501">refreshed while still listed</text>
+
+  <!-- Run history -->
+  <rect class="body" x="40" y="560" width="420" height="292" rx="8"/>
+  <rect class="head" x="40" y="560" width="420" height="36" rx="8"/>
+  <text class="ht" x="54" y="584">ScrapeRun  (jobs_scraperun)</text>
+  <text class="f" x="54" y="615">id</text><text class="m" x="200" y="615">primary key</text>
+  <text class="f" x="54" y="639">operation</text><text class="m" x="200" y="639">scrape or refilter</text>
+  <text class="f" x="54" y="663">status</text><text class="m" x="200" y="663">queued, running, succeeded, partial, failed</text>
+  <text class="f" x="54" y="687">created_at</text><text class="m" x="200" y="687">when requested</text>
+  <text class="f" x="54" y="711">started_at / finished_at</text><text class="m" x="200" y="711">run timestamps</text>
+  <text class="f" x="54" y="735">updated_at</text><text class="m" x="200" y="735">progress heartbeat</text>
+  <text class="f" x="54" y="759">progress_current / total</text><text class="m" x="200" y="759">browser progress</text>
+  <text class="f" x="54" y="783">progress_message</text><text class="m" x="200" y="783">current activity</text>
+  <text class="f" x="54" y="807">summary / error_summary</text><text class="m" x="200" y="807">overall outcome</text>
+  <text class="f" x="54" y="831">active-run constraint</text><text class="m" x="200" y="831">one queued or running</text>
+
+  <rect class="body" x="500" y="560" width="410" height="292" rx="8"/>
+  <rect class="head" x="500" y="560" width="410" height="36" rx="8"/>
+  <text class="ht" x="514" y="584">EmployerRunResult  (jobs_employerrunresult)</text>
+  <text class="f" x="514" y="615">id</text><text class="m" x="650" y="615">primary key</text>
+  <text class="f" x="514" y="639">run</text><text class="m" x="650" y="639">ScrapeRun (foreign key)</text>
+  <text class="f" x="514" y="663">employer</text><text class="m" x="650" y="663">optional foreign key</text>
+  <text class="f" x="514" y="687">employer_name</text><text class="m" x="650" y="687">name snapshot</text>
+  <text class="f" x="514" y="711">status</text><text class="m" x="650" y="711">running, succeeded, warning, failed, skipped</text>
+  <text class="f" x="514" y="735">found / new</text><text class="m" x="650" y="735">job counts</text>
+  <text class="f" x="514" y="759">kept / filtered</text><text class="m" x="650" y="759">job counts</text>
+  <text class="f" x="514" y="783">summary</text><text class="m" x="650" y="783">employer outcome</text>
+  <text class="f" x="514" y="807">error_summary</text><text class="m" x="650" y="807">safe warning details</text>
+  <text class="f" x="514" y="831">started_at / finished_at</text><text class="m" x="650" y="831">employer timestamps</text>
+
+  <path class="rel" d="M460,770 H496"/>
+  <text class="lbl" x="461" y="758">1</text>
+  <text class="lbl" x="484" y="758">*</text>
 </svg>

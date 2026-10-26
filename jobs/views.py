@@ -1,12 +1,16 @@
 from urllib.parse import urlencode
 
 from django.contrib.auth.decorators import login_required
+from django.db import IntegrityError
 from django.db.models import Count, Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET
 
-from .models import Employer, Job
+from .models import Employer, EmployerRunResult, Job, ScrapeRun
+from .run_service import create_run
 
 LIST_LIMIT = 200
 
@@ -49,6 +53,7 @@ def job_list(request):
         "employers": Employer.objects.all(),
         "base_qs": urlencode({"status": status, "employer": employer_id, "q": q}),
         "full_qs": request.GET.urlencode(),
+        "latest_run": ScrapeRun.objects.first(),
     }
     return render(request, "jobs/job_list.html", context)
 
@@ -62,3 +67,58 @@ def set_status(request, pk):
         job.status = new_status
         job.save(update_fields=["status"])
     return redirect(f"{reverse('job_list')}?{request.POST.get('qs', '')}")
+
+
+@require_POST
+@login_required(login_url="/admin/login/")
+def start_run(request):
+    operation = request.POST.get("operation", "")
+    if operation not in ScrapeRun.Operation.values:
+        return JsonResponse({"error": "Choose a valid operation."}, status=400)
+    try:
+        run = create_run(operation, queued=True)
+    except IntegrityError:
+        active_run = ScrapeRun.objects.filter(
+            status__in=[ScrapeRun.Status.QUEUED, ScrapeRun.Status.RUNNING]
+        ).first()
+        if active_run is None:
+            raise
+        return JsonResponse(
+            {
+                "error": "A run is already queued or running.",
+                "run_id": active_run.pk,
+                "status_url": reverse("run_status", args=[active_run.pk]),
+            },
+            status=409,
+        )
+    return JsonResponse({
+        "run_id": run.pk,
+        "status": run.status,
+        "status_url": reverse("run_status", args=[run.pk]),
+    }, status=202)
+
+
+@require_GET
+@login_required(login_url="/admin/login/")
+def run_status(request, run_id):
+    run = get_object_or_404(ScrapeRun, pk=run_id)
+    results = [
+        {
+            "employer": result.employer_name,
+            "status": result.status,
+            "summary": result.summary,
+            "error": result.error_summary,
+        }
+        for result in run.employer_results.all()
+    ]
+    return JsonResponse({
+        "id": run.pk,
+        "operation": run.operation,
+        "status": run.status,
+        "summary": run.summary,
+        "error": run.error_summary,
+        "progress_current": run.progress_current,
+        "progress_total": run.progress_total,
+        "progress_message": run.progress_message,
+        "results": results,
+    })

@@ -61,11 +61,12 @@ Work in this order. Each step gives you something to check before the next one.
 
    Be polite: a short pause between requests, an identifiable User-Agent, and no more requests
    than needed.
-4. **Register it.** Add a choice to `Employer.Adapter` in
-   [`jobs/models.py`](../jobs/models.py), run `python manage.py makemigrations jobs` and
-   `python manage.py migrate` ([what these do](schema.md)), and add the module to the
-   `ADAPTERS` dictionary in
-   [`scrape.py`](../jobs/management/commands/scrape.py).
+4. **Register it.** Add its name, display label, and module path to
+   [`scrapers/registry.py`](../scrapers/registry.py). The registry supplies both the Employer
+   choices in [`jobs/models.py`](../jobs/models.py) and adapter loading in
+   [`scrape.py`](../jobs/management/commands/scrape.py). Then run
+   `python manage.py makemigrations jobs` and `python manage.py migrate`
+   ([what these do](schema.md)).
 5. **Test it.** Write `tests/test_<platform>.py` (copy an existing one) containing a small
    invented sample response, as described in [testing.md](testing.md), and run `pytest`.
 6. **Try it live.** Add an Employer in the admin and run `python manage.py scrape`.

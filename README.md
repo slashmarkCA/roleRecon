@@ -27,15 +27,15 @@ cp search_config.example.json search_config.json     # then edit your rules
 
 python manage.py migrate                             # create the tables
 python manage.py createsuperuser                     # login for /admin/
-python manage.py runserver                           # http://127.0.0.1:8000/admin/
 ```
 
-Then, in the admin, add an **Employer** (name, adapter, board URL, Options `{}`), and run:
+Start the web server, open `/admin/`, and add an **Employer** (name, adapter, board URL, Options
+`{}`). Keep `python manage.py runserver` running in one terminal and
+`python manage.py run_job_worker` running in another.
 
-```
-python manage.py scrape                              # fetch + filter + save
-python manage.py runserver                           # browse at http://127.0.0.1:8000/
-```
+On the job page, use **Scrape employers** or **Reapply filters**. The worker must stay running
+to process those requests. For one-off command-line runs, `python manage.py scrape` and
+`python manage.py refilter` still run directly.
 
 The job page requires login. Use the same Django account created for the admin; if you are not
 logged in, the page redirects to the admin login and returns you to the job page afterward.
@@ -47,14 +47,16 @@ when unset, which is the safe default).
 
 ## Starting again after a reboot
 
-The database is hosted, so there is nothing to start except your own terminal.
+The database is hosted. Start the web server and worker in separate terminals while using the
+browser controls.
 
 1. Open a terminal in the project folder and activate the virtual environment:
    `source .venv/bin/activate`. The prompt then starts with `(.venv)`. (PyCharm's built-in
    terminal does this for you.)
 2. Make sure you are online and that `.env` still exists in the project folder.
-3. Refresh the jobs with `python manage.py scrape`, then browse with
-   `python manage.py runserver` and open `http://127.0.0.1:8000/`.
+3. In one terminal run `python manage.py runserver`; in another run
+   `python manage.py run_job_worker`. Open `http://127.0.0.1:8000/` and use the scrape or
+   refilter buttons. Stop either process with Ctrl+C.
 
 If something fails: `pip install -r requirements.txt` (missing packages), `python manage.py
 migrate` (database not up to date), or check `DATABASE_URL` in `.env`.
@@ -63,14 +65,18 @@ migrate` (database not up to date), or check `DATABASE_URL` in `.env`.
 
 | Command | What it does |
 |---|---|
-| `python manage.py scrape` | For every active employer: fetch jobs, skip known ones, filter, and save new ones. Prints one summary line per employer. |
+| `python manage.py scrape` | Run a scrape inline for every active employer; logs each employer's summary and returns a non-zero exit status if any employer fails or warns. |
 | `python manage.py refilter` | Re-apply your current `search_config.json` to stored jobs (no network). **Run it after editing the config.** |
 | `python manage.py runserver` | Start the web page at `http://127.0.0.1:8000/` (admin at `/admin/`). Stop with Ctrl+C. |
+| `python manage.py run_job_worker` | Process browser-requested scrapes and refilters. Keep it running alongside the web server; stop with Ctrl+C. |
 | `python manage.py makemigrations jobs` | After changing `jobs/models.py`: write a migration file. |
 | `python manage.py migrate` | Apply migrations to the database. |
 | `python manage.py createsuperuser` | Create the admin login. |
 | `python manage.py shell` | A Python prompt with the models loaded, for inspecting data. |
-| `pytest` | Run the tests (offline). |
+| `pytest` | Run the tests (offline, without database access). |
+
+Run history and per-employer summaries are stored in the database for the browser. Detailed
+diagnostics go to the console and the rotating, git-ignored `logs/roleRecon.log` file.
 
 - After adding an employer: run `scrape` to fetch and filter its jobs.
 - After editing `search_config.json`: run `refilter` to re-judge stored jobs; run `scrape` too
@@ -91,13 +97,15 @@ roleRecon/
 │
 ├── config/                        the Django PROJECT: settings and URL routing
 ├── jobs/                          the Django APP: models, admin, web page, commands
-│   ├── models.py                  the Employer and Job tables
+│   ├── models.py                  employers, jobs and run-history tables
+│   ├── run_service.py             shared scrape/refilter execution and reporting
 │   ├── admin.py, views.py, urls.py, templates/jobs/job_list.html
 │   ├── migrations/                numbered database changes
-│   └── management/commands/       scrape.py, refilter.py
+│   └── management/commands/       scrape.py, refilter.py, run_job_worker.py
 │
 ├── scrapers/                      one ADAPTER module per platform; no Django imports
-│   └── base.py                    JobRecord: the standard job form
+│   ├── base.py                    JobRecord: the standard job form
+│   └── registry.py                adapter names, labels and dispatch
 ├── rules/filters.py               load_config() and evaluate(): all filtering and scoring
 ├── tests/                         pytest tests (no network, no database)
 ├── data/                          (git-ignored) scratch space for samples and personal notes

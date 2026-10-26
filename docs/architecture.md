@@ -1,16 +1,16 @@
 # Architecture
 
 roleRecon checks the career pages of employers you choose, keeps the jobs that match your
-rules, and shows them in a local web page. This page explains how that works, step by step,
-and where each step lives in the code.
+rules, and shows them in a local web page. Runs can start from the command line or from the
+browser; browser requests are queued in the database and processed by a local worker.
 
 ![Pipeline](diagrams/pipeline.svg)
 
 ## The pipeline
 
-Everything starts with `python manage.py scrape`
-([`jobs/management/commands/scrape.py`](../jobs/management/commands/scrape.py)). For each
-**active** employer in the database it does the following.
+The scrape pipeline runs through the shared service in
+[`jobs/run_service.py`](../jobs/run_service.py), called by the `scrape` command or the
+background worker. For each **active** employer in the database it does the following.
 
 1. **Fetch the list.** The employer's *adapter* (see below) asks the career site for its
    current job list and returns a list of standard `JobRecord`s.
@@ -42,12 +42,26 @@ Everything starts with `python manage.py scrape`
 If a job has no description stored (because it was rejected on its title, or the source has
 none), it gets the flag `no description`.
 
+### Browser runs and error reporting
+
+The job page's **Scrape employers** and **Reapply filters** buttons create a database run.
+Keep `python manage.py run_job_worker` running in a second terminal; it claims queued work,
+updates progress and saves per-employer results for the page to poll. Only one run may be
+queued or active at a time. Stopping the worker during a run marks that run failed.
+
+Temporary connection/time-out errors and HTTP 429/5xx responses are retried twice. Employer
+failures, empty lists, capped lists and detail-fetch failures appear as warnings or errors in
+the browser and console. Detailed diagnostics also go to the rotating, git-ignored
+`logs/roleRecon.log`; run summaries and safe error descriptions are stored in the database.
+The command-line `scrape` and `refilter` commands use the same service and run inline.
+
 ### Reading the summary line
 
-Each employer gets one line, for example
+Each employer has a result, for example
 `Acme: 106 found, 106 new (0 kept, 106 filtered: 98 title has no include keyword, 8 location not accepted)`.
-The counts after "filtered" say which check rejected the jobs, which tells you at a glance
-whether a keyword or location list is too narrow. Sources return at most a fixed number of jobs
+The browser shows these results; the CLI and worker also log them. The counts after "filtered"
+say which check rejected the jobs, which tells you at a glance whether a keyword or location
+list is too narrow. Sources return at most a fixed number of jobs
 (`MAX_JOBS` in the adapter, or the feed's `rows` setting); when a list reaches that number the
 line is followed by a WARNING that jobs may have been cut off.
 
@@ -83,6 +97,11 @@ what the tests exercise, using small invented sample responses (see [testing.md]
 
 This is the one list of supported platforms; other pages link here instead of repeating it. To
 add an employer, find its platform's row and paste a URL shaped like the third column.
+
+The adapter registry in [`scrapers/registry.py`](../scrapers/registry.py) is the code's single
+source for adapter names and labels. Django's admin choices and the scrape command both use it.
+Some choices (`lever`, `html`, `browser`, `linkedin`) are reserved for future adapters and are
+not yet implemented; the registry marks those explicitly.
 
 | Adapter | Platform | Board URL looks like | How it gets the data |
 |---|---|---|---|

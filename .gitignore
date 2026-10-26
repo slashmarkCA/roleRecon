@@ -7,6 +7,7 @@ search_config.json
 linkedin_config.json
 *.local.md
 data/
+logs/
 .vscode/
 .gemini/
 .agents/

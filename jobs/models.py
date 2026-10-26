@@ -1,26 +1,12 @@
 from django.db import models
 from django.utils import timezone
 
+from scrapers.registry import ADAPTER_CHOICES
+
 
 class Employer(models.Model):
-    class Adapter(models.TextChoices):
-        ULTIPRO = "ultipro", "UltiPro / UKG"
-        WORKDAY = "workday", "Workday"
-        BAMBOOHR = "bamboohr", "BambooHR"
-        ORACLE_HCM = "oracle_hcm", "Oracle Recruiting Cloud"
-        JOBBANK = "jobbank", "Job Bank (Atom feed)"
-        ERECRUIT = "erecruit", "Virtuo HR eRecruit (RSS feed)"
-        GREENHOUSE = "greenhouse", "Greenhouse"
-        SUCCESSFACTORS = "successfactors", "SuccessFactors"
-        PHENOM = "phenom", "Phenom"
-        WORKABLE = "workable", "Workable"
-        LEVER = "lever", "Lever"
-        HTML = "html", "Plain HTML page"
-        BROWSER = "browser", "Browser-rendered page"
-        LINKEDIN = "linkedin", "LinkedIn search"
-
     name = models.CharField(max_length=200, unique=True)
-    adapter = models.CharField(max_length=20, choices=Adapter.choices)
+    adapter = models.CharField(max_length=20, choices=ADAPTER_CHOICES)
     board_url = models.URLField(max_length=500)
     options = models.JSONField(default=dict, blank=True)  # selectors, API params
     active = models.BooleanField(default=True)
@@ -64,3 +50,71 @@ class Job(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.employer})"
+
+
+class ScrapeRun(models.Model):
+    class Operation(models.TextChoices):
+        SCRAPE = "scrape", "Scrape"
+        REFILTER = "refilter", "Refilter"
+
+    class Status(models.TextChoices):
+        QUEUED = "queued", "Queued"
+        RUNNING = "running", "Running"
+        SUCCEEDED = "succeeded", "Succeeded"
+        PARTIAL = "partial", "Completed with errors"
+        FAILED = "failed", "Failed"
+
+    operation = models.CharField(max_length=20, choices=Operation.choices)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.QUEUED)
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    progress_current = models.PositiveIntegerField(default=0)
+    progress_total = models.PositiveIntegerField(default=0)
+    progress_message = models.CharField(max_length=300, blank=True)
+    summary = models.TextField(blank=True)
+    error_summary = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                models.Value(1),
+                condition=models.Q(status__in=["queued", "running"]),
+                name="one_active_scrape_run",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.get_operation_display()} {self.get_status_display()} ({self.pk})"
+
+
+class EmployerRunResult(models.Model):
+    class Status(models.TextChoices):
+        RUNNING = "running", "Running"
+        SUCCEEDED = "succeeded", "Succeeded"
+        WARNING = "warning", "Warning"
+        FAILED = "failed", "Failed"
+        SKIPPED = "skipped", "Skipped"
+
+    run = models.ForeignKey(ScrapeRun, on_delete=models.CASCADE, related_name="employer_results")
+    employer = models.ForeignKey(
+        Employer, on_delete=models.SET_NULL, null=True, blank=True, related_name="run_results"
+    )
+    employer_name = models.CharField(max_length=200)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.RUNNING)
+    found = models.PositiveIntegerField(default=0)
+    new = models.PositiveIntegerField(default=0)
+    kept = models.PositiveIntegerField(default=0)
+    filtered = models.PositiveIntegerField(default=0)
+    summary = models.TextField(blank=True)
+    error_summary = models.TextField(blank=True)
+    started_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self):
+        return f"{self.employer_name}: {self.get_status_display()}"
