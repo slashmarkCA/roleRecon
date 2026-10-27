@@ -16,7 +16,7 @@ and no database.
 |---|---|
 | `test_filters.py` | Every filter rule with small made-up jobs: exclusions, include keywords, whole-word matching (`java` vs `javascript`), locations, work arrangement, flags, scoring, and loading the config file. |
 | `test_<platform>.py` (one per adapter) | The adapter's **parse** functions: given a small sample response, do we produce the right records? Also URL handling, such as extracting a Workday site name from a pasted job link. |
-| `test_run_service.py` | Retry behavior, safe request-error summaries, and browser run-start validation/authentication. |
+| `test_run_service.py` | Request retries and safe summaries, worker recovery from simulated database outages, and browser run-start validation/authentication. |
 
 Tests do not connect to the database or career sites. The database-backed worker, management
 commands and browser flow are not integration-tested; check them locally after applying

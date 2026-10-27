@@ -1,15 +1,18 @@
 # roleRecon
 
-A personal job-discovery website scraping tool. You give it a list of employers; it checks their career pages
-on demand, throws away the jobs that don't fit your rules, and shows the rest in a local web
-page (job list on the left, full description on the right) where you can mark each job saved,
-applied or ignored, and you dear user, then use judgement and apply manually. 
+A personal job-discovery website scraping tool. You give it a list of employers; it checks their career pages, scores jobs based on several criteria you specify, and presents the results so you can use human judgement to mark each job Saved, Applied or Ignored, and apply manually. 
 
-It is built with Python, Django and a Supabase (Postgres) database. Searching, scraping and filtering uses no AI, so it doesn't cost any tokens to run.  
+This takes the age old practice of "screen scraping" and introduces AI to use a larger picture of you, your hunt, and "hmm, I would have missed that" by simple keyword matching through using reasoning that would be infinetly complicated to write with code - and...
+- Deliberately strip html/css/javascript __first__ before running through AI which saves 80% of token burn, (a.k.a. DOM noise choking the context window) which __then__ keeps it economical enough to be usable with __free__ AI models.
+- Use AI harnesses that can apply for you only after you "human in the middle" say "Go".
+- Pulls the mass-market LinkedIn volume together with specific employer websites into one place (saving a Linkedin search followed by 50 one-by-one employer pages you have bookmarked).
+
+
+It is built with Python, Django and a Supabase (Postgres) database. Searching, scraping and filtering uses no AI (yet), so it doesn't cost any tokens to run.  
 
 ![Pipeline](docs/diagrams/pipeline.svg)
 
-Employers on a supported career-site platform are added with no code, just a row in the admin.
+Employers on a supported career-site platform (like Workday) are added with no code, just add a row in the admin.
 The supported platforms, what is not built yet (applying, a LinkedIn source, AI scoring, a web
 login) and how everything works are in [docs/architecture.md](docs/architecture.md).
 

@@ -359,3 +359,20 @@ def mark_stale_runs_failed(stale_after=timedelta(minutes=20)):
             "status", "error_summary", "summary", "finished_at", "updated_at",
         ])
         logger.error("Run %s marked failed after stale worker heartbeat", run.pk)
+
+
+def mark_worker_run_failed_after_database_error(run_id):
+    now = timezone.now()
+    updated = ScrapeRun.objects.filter(
+        pk=run_id,
+        status=ScrapeRun.Status.RUNNING,
+    ).update(
+        status=ScrapeRun.Status.FAILED,
+        error_summary="Worker lost its database connection while processing this run.",
+        summary="Run marked failed after the worker lost its database connection.",
+        progress_message="Run failed after a database connection error.",
+        finished_at=now,
+        updated_at=now,
+    )
+    if updated:
+        logger.error("Run %s marked failed after a worker database connection error", run_id)

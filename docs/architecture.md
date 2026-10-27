@@ -53,6 +53,9 @@ Temporary connection/time-out errors and HTTP 429/5xx responses are retried twic
 failures, empty lists, capped lists and detail-fetch failures appear as warnings or errors in
 the browser and console. Detailed diagnostics also go to the rotating, git-ignored
 `logs/roleRecon.log`; run summaries and safe error descriptions are stored in the database.
+If the worker loses its database connection, it logs the error and retries with a delay that
+caps at 30 seconds; a run interrupted by that loss is marked failed after the database returns.
+Database schema errors are not retried, so apply pending migrations before starting the app.
 The command-line `scrape` and `refilter` commands use the same service and run inline.
 
 ### Reading the summary line

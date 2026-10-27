@@ -2,11 +2,16 @@ import logging
 import time
 
 from django.core.management.base import BaseCommand
-from django.db import close_old_connections
+from django.db import OperationalError, close_old_connections
 from django.utils import timezone
 
 from jobs.models import ScrapeRun
-from jobs.run_service import claim_next_run, execute_run, mark_stale_runs_failed
+from jobs.run_service import (
+    claim_next_run,
+    execute_run,
+    mark_stale_runs_failed,
+    mark_worker_run_failed_after_database_error,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,19 +35,37 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         poll_seconds = max(0.2, options["poll_seconds"])
         run = None
+        interrupted_run_id = None
+        database_retry_seconds = 1
         self.stdout.write("Worker started; waiting for queued runs. Press Ctrl+C to stop.")
         logger.info("Run worker started; polling every %.1f seconds", poll_seconds)
         try:
             while True:
-                close_old_connections()
-                mark_stale_runs_failed()
-                run = claim_next_run()
-                if run is not None:
-                    execute_run(run)
-                    run = None
-                elif options["once"]:
-                    return
-                else:
+                try:
+                    close_old_connections()
+                    if interrupted_run_id is not None:
+                        mark_worker_run_failed_after_database_error(interrupted_run_id)
+                        interrupted_run_id = None
+                    mark_stale_runs_failed()
+                    run = claim_next_run()
+                    if run is not None:
+                        execute_run(run)
+                        run = None
+                    elif options["once"]:
+                        return
+                except OperationalError:
+                    if run is not None:
+                        interrupted_run_id = run.pk
+                        run = None
+                    logger.exception(
+                        "Database unavailable in run worker; retrying in %s second(s)",
+                        database_retry_seconds,
+                    )
+                    time.sleep(database_retry_seconds)
+                    database_retry_seconds = min(database_retry_seconds * 2, 30)
+                    continue
+                database_retry_seconds = 1
+                if run is None:
                     time.sleep(poll_seconds)
         except KeyboardInterrupt:
             if run is not None and run.status == ScrapeRun.Status.RUNNING:
@@ -54,4 +77,12 @@ class Command(BaseCommand):
                     "status", "error_summary", "summary", "finished_at", "updated_at",
                 ])
                 logger.warning("Run %s marked failed after worker interruption", run.pk)
+            if interrupted_run_id is not None:
+                try:
+                    mark_worker_run_failed_after_database_error(interrupted_run_id)
+                except OperationalError:
+                    logger.exception(
+                        "Could not mark run %s failed before worker shutdown",
+                        interrupted_run_id,
+                    )
             self.stdout.write("Worker stopped.")

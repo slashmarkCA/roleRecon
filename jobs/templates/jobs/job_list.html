@@ -4,33 +4,88 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>roleRecon</title>
+  <script>
+    try {
+      const saved = localStorage.getItem("rr-theme");
+      if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved;
+    } catch (error) {}
+  </script>
   <style>
     :root {
       color-scheme: light dark;
       --bg: #ffffff; --panel: #f6f7f9; --line: #d9dde3; --text: #1b1f24;
-      --muted: #5b6470; --accent: #2457c5; --sel: #e4ecfb; --good: #1c7c3a; --warn: #a15c00;
+      --muted: #5b6470; --accent: #2457c5; --sel: #e4ecfb; --good: #1c7c3a; --warn: #a15c00; --bad: #b42318;
     }
     @media (prefers-color-scheme: dark) {
-      :root {
+      :root:not([data-theme="light"]) {
         --bg: #14171b; --panel: #1b2026; --line: #2d343c; --text: #e6e9ed;
-        --muted: #98a1ad; --accent: #7aa2ff; --sel: #243049; --good: #5fd08a; --warn: #f0b35a;
+        --muted: #98a1ad; --accent: #7aa2ff; --sel: #243049; --good: #5fd08a; --warn: #f0b35a; --bad: #ff8a80;
       }
     }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #14171b; --panel: #1b2026; --line: #2d343c; --text: #e6e9ed;
+      --muted: #98a1ad; --accent: #7aa2ff; --sel: #243049; --good: #5fd08a; --warn: #f0b35a; --bad: #ff8a80;
+    }
+    :root[data-theme="light"] { color-scheme: light; }
+    #theme-toggle { font-size: 13px; white-space: nowrap; }
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
     body { display: flex; flex-direction: column; background: var(--bg); color: var(--text);
            font: 15px/1.45 system-ui, sans-serif; }
     a { color: var(--accent); text-decoration: none; }
-    header { padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
-    header h1 { font-size: 17px; margin: 0 16px 0 0; display: inline-block; }
-    .tabs { display: inline-flex; flex-wrap: wrap; gap: 6px; vertical-align: middle; }
+    header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+             padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+    header h1 { font-size: 17px; margin: 0 4px 0 0; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
     .tabs a { padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--text); }
     .tabs a.on { background: var(--accent); border-color: var(--accent); color: #fff; }
     .tabs span { opacity: .75; margin-left: 4px; }
-    form.filters { display: inline-flex; gap: 6px; margin-left: 16px; vertical-align: middle; flex-wrap: wrap; }
+    form.filters { display: flex; gap: 6px; flex-wrap: wrap; margin: 0; }
+    .hright { margin-left: auto; display: flex; align-items: center; gap: 10px; }
     input, select, button { font: inherit; padding: 4px 8px; border: 1px solid var(--line);
                             border-radius: 6px; background: var(--bg); color: var(--text); }
     button { cursor: pointer; }
+    button:disabled { cursor: wait; opacity: .65; }
+
+    .chip { font-size: 13px; padding: 3px 10px; border-radius: 999px; max-width: 280px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chip.run { border-color: var(--accent); color: var(--accent); }
+    .chip.warn { border-color: var(--warn); color: var(--warn); }
+    .chip.bad { border-color: var(--bad); color: var(--bad); }
+
+    details.runmenu { position: relative; }
+    details.runmenu summary { list-style: none; cursor: pointer; padding: 4px 10px; border: 1px solid var(--line);
+                              border-radius: 6px; background: var(--bg); user-select: none; }
+    details.runmenu summary::-webkit-details-marker { display: none; }
+    details.runmenu[open] summary { background: var(--sel); }
+    .menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 10; min-width: 180px;
+            background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 4px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, .18); }
+    .menu form { margin: 0; }
+    .menu button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 6px 10px; }
+    .menu button:hover:not(:disabled) { background: var(--panel); }
+
+    dialog#run-dialog { padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--bg);
+                        color: var(--text); width: min(680px, 94vw); }
+    dialog#run-dialog::backdrop { background: rgba(0, 0, 0, .5); }
+    .dlg { padding: 16px 18px; }
+    .dlg-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .dlg-head h2 { margin: 0; font-size: 17px; }
+    #run-status-line { color: var(--muted); font-size: 14px; margin-bottom: 6px; }
+    #run-progress { width: 100%; height: 8px; margin-bottom: 8px; }
+    .counts { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; margin-bottom: 8px; }
+    .counts .only { margin-left: auto; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+    .counts .only input { padding: 0; }
+    .ok { color: var(--good); } .wn { color: var(--warn); } .er { color: var(--bad); }
+    ul.runlog { list-style: none; margin: 0; padding: 8px 10px; height: 260px; overflow-y: auto;
+                background: var(--panel); border-radius: 8px; font: 13px/1.7 ui-monospace, monospace; }
+    ul.runlog li { display: flex; gap: 6px; }
+    ul.runlog li .name { color: var(--text); white-space: nowrap; }
+    ul.runlog li .txt { color: var(--muted); }
+    .dlg-foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+    #run-refresh { display: none; }
+
     main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(300px, 38%) 1fr; }
     .list { overflow-y: auto; border-right: 1px solid var(--line); }
     .row { display: block; padding: 10px 14px; border-bottom: 1px solid var(--line); color: var(--text); }
@@ -50,12 +105,6 @@
     .reason { padding: 8px 12px; border: 1px solid var(--warn); border-radius: 6px; color: var(--warn); margin-bottom: 12px; }
     .desc { white-space: pre-wrap; max-width: 80ch; }
     .empty { padding: 40px 24px; color: var(--muted); }
-    .run-tools { padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
-    .run-tools form { display: inline-block; margin-right: 6px; }
-    .run-tools button:disabled { cursor: wait; opacity: .65; }
-    #run-progress { margin: 8px 0; max-width: 520px; }
-    #run-results { margin: 4px 0; padding-left: 20px; }
-    #run-refresh { display: none; margin-left: 8px; }
     @media (max-width: 800px) { main { grid-template-columns: 1fr; } .list { max-height: 40vh; } }
   </style>
 </head>
@@ -79,31 +128,55 @@
       <input type="search" name="q" value="{{ q }}" placeholder="Search title or description">
       <button type="submit">Filter</button>
     </form>
-    <a href="/admin/" style="float:right">Admin</a>
+
+    <div class="hright">
+      <button type="button" id="run-panel" class="chip" aria-haspopup="dialog" title="Show run log"
+              data-run-id="{% if latest_run %}{{ latest_run.pk }}{% endif %}"
+              data-status-url="{% if latest_run %}{% url 'run_status' latest_run.pk %}{% endif %}">
+        <span id="run-message" role="status" aria-live="polite">{% if latest_run %}{{ latest_run.get_operation_display }}: {{ latest_run.get_status_display }}{% else %}No runs yet{% endif %}</span>
+      </button>
+      <details class="runmenu" id="run-menu">
+        <summary>Run &#9662;</summary>
+        <div class="menu">
+          <form method="post" action="{% url 'start_run' %}">
+            {% csrf_token %}<input type="hidden" name="operation" value="scrape">
+            <button type="submit">Scrape employers</button>
+          </form>
+          <form method="post" action="{% url 'start_run' %}">
+            {% csrf_token %}<input type="hidden" name="operation" value="refilter">
+            <button type="submit">Reapply filters</button>
+          </form>
+        </div>
+      </details>
+      <button type="button" id="theme-toggle" title="Switch theme">Theme: Auto</button>
+      <a href="/admin/">Admin</a>
+    </div>
   </header>
 
-  <section class="run-tools" aria-label="Scrape and filter jobs">
-    <form method="post" action="{% url 'start_run' %}">
-      {% csrf_token %}<input type="hidden" name="operation" value="scrape">
-      <button type="submit">Scrape employers</button>
-    </form>
-    <form method="post" action="{% url 'start_run' %}">
-      {% csrf_token %}<input type="hidden" name="operation" value="refilter">
-      <button type="submit">Reapply filters</button>
-    </form>
-    <a id="run-refresh" href="/">Refresh job list</a>
-    <div id="run-panel" role="status" aria-live="polite"
-         data-run-id="{% if latest_run %}{{ latest_run.pk }}{% endif %}"
-         data-status-url="{% if latest_run %}{% url 'run_status' latest_run.pk %}{% endif %}">
-      <span id="run-message">
-        {% if latest_run %}Latest: {{ latest_run.get_operation_display }} —
-          {{ latest_run.get_status_display }}{% if latest_run.summary %}: {{ latest_run.summary }}{% endif %}
-        {% else %}No scrape or refilter runs yet.{% endif %}
-      </span>
-      <div><progress id="run-progress" value="0" max="1"></progress></div>
-      <ul id="run-results"></ul>
+  <dialog id="run-dialog" aria-labelledby="run-title">
+    <div class="dlg">
+      <div class="dlg-head">
+        <h2 id="run-title">Run log</h2>
+        <button type="button" id="run-close" aria-label="Close">&times;</button>
+      </div>
+      <div id="run-status-line">
+        {% if latest_run %}Latest: {{ latest_run.get_operation_display }} &mdash; {{ latest_run.get_status_display }}{% if latest_run.summary %}: {{ latest_run.summary }}{% endif %}
+        {% else %}No scrape or refilter runs yet. Use Run to start one.{% endif %}
+      </div>
+      <progress id="run-progress" value="0" max="1"></progress>
+      <div class="counts">
+        <span class="ok" id="cnt-ok">0 succeeded</span>
+        <span class="wn" id="cnt-warn">0 warnings</span>
+        <span class="er" id="cnt-bad">0 failed</span>
+        <label class="only"><input type="checkbox" id="run-problems"> Problems only</label>
+      </div>
+      <ul id="run-results" class="runlog"></ul>
+      <div class="dlg-foot">
+        <span>Closing this window won&rsquo;t stop the run.</span>
+        <a id="run-refresh" href="/">Refresh job list</a>
+      </div>
     </div>
-  </section>
+  </dialog>
 
   <main>
     <section class="list">
@@ -162,32 +235,99 @@
     </section>
   </main>
   <script>
-    const runPanel = document.getElementById("run-panel");
+    const chip = document.getElementById("run-panel");
     const runMessage = document.getElementById("run-message");
+    const dialog = document.getElementById("run-dialog");
+    const runTitle = document.getElementById("run-title");
+    const statusLine = document.getElementById("run-status-line");
     const progress = document.getElementById("run-progress");
     const resultList = document.getElementById("run-results");
     const refreshLink = document.getElementById("run-refresh");
-    const runButtons = [...document.querySelectorAll(".run-tools button")];
+    const problemsOnly = document.getElementById("run-problems");
+    const countOk = document.getElementById("cnt-ok");
+    const countWarn = document.getElementById("cnt-warn");
+    const countBad = document.getElementById("cnt-bad");
+    const runMenu = document.getElementById("run-menu");
+    const runButtons = [...document.querySelectorAll("#run-menu button")];
     let polling = false;
+    let lastData = null;
 
-    function showRun(data) {
-      const operation = data.operation === "scrape" ? "Scrape" : "Refilter";
-      runMessage.textContent = `${operation}: ${data.status} — ${data.progress_message || data.summary}`;
-      progress.max = Math.max(data.progress_total, 1);
-      progress.value = data.progress_current;
+    function openDialog() { if (!dialog.open) dialog.showModal(); }
+
+    function classify(result) {
+      const s = (result.status || "").toLowerCase();
+      if (s === "succeeded" || s === "success") return "ok";
+      if (s.includes("fail") || s.includes("error")) return "bad";
+      return "warn";
+    }
+
+    function renderLog(active) {
+      const results = (lastData && lastData.results) || [];
+      const kinds = results.map(classify);
+      countOk.textContent = `${kinds.filter(k => k === "ok").length} succeeded`;
+      countWarn.textContent = `${kinds.filter(k => k === "warn").length} warnings`;
+      countBad.textContent = `${kinds.filter(k => k === "bad").length} failed`;
+
+      const nearBottom = resultList.scrollTop + resultList.clientHeight >= resultList.scrollHeight - 24;
       resultList.replaceChildren();
-      for (const result of data.results || []) {
+      results.forEach((result, i) => {
+        if (problemsOnly.checked && kinds[i] === "ok") return;
         const item = document.createElement("li");
-        item.textContent = `${result.employer}: ${result.status} — ${result.summary || result.error}`;
+        const mark = document.createElement("span");
+        mark.className = kinds[i] === "ok" ? "ok" : kinds[i] === "warn" ? "wn" : "er";
+        mark.textContent = kinds[i] === "ok" ? "\u2713" : "!";
+        const name = document.createElement("span");
+        name.className = "name";
+        name.textContent = result.employer;
+        const text = document.createElement("span");
+        text.className = "txt";
+        text.textContent = `${result.status} \u2014 ${result.summary || result.error || ""}`;
+        item.append(mark, name, text);
+        resultList.append(item);
+      });
+      if (!resultList.children.length) {
+        const item = document.createElement("li");
+        item.className = "txt";
+        item.style.color = "var(--muted)";
+        item.textContent = results.length ? "No problems to show." : "No results yet.";
         resultList.append(item);
       }
+      if (active || nearBottom) resultList.scrollTop = resultList.scrollHeight;
+    }
+
+    function showRun(data) {
+      lastData = data;
+      const operation = data.operation === "scrape" ? "Scrape" : "Refilter";
       const active = data.status === "queued" || data.status === "running";
+      runTitle.textContent = data.operation === "scrape" ? "Scrape employers" : "Reapply filters";
+      statusLine.textContent = `${operation}: ${data.status} \u2014 ${data.progress_message || data.summary || ""}`;
+      progress.max = Math.max(data.progress_total, 1);
+      progress.value = data.progress_current;
+
+      runMessage.textContent = active
+        ? `${operation} running ${data.progress_current}/${Math.max(data.progress_total, 1)}\u2026`
+        : `${operation}: ${data.status}`;
+      const kinds = (data.results || []).map(classify);
+      chip.classList.toggle("run", active);
+      chip.classList.toggle("bad", !active && (kinds.includes("bad") || data.status === "failed"));
+      chip.classList.toggle("warn", !active && !kinds.includes("bad") && data.status !== "failed"
+                                    && (kinds.includes("warn") || data.status === "partial"));
+
       runButtons.forEach(button => button.disabled = active);
       refreshLink.style.display = active ? "none" : "inline";
+      renderLog(active);
+    }
+
+    function showError(message) {
+      runMessage.textContent = "Run status unavailable";
+      statusLine.textContent = message;
+      chip.classList.remove("run");
+      chip.classList.add("bad");
+      runButtons.forEach(button => button.disabled = false);
     }
 
     async function readRun() {
-      const response = await fetch(runPanel.dataset.statusUrl, {
+      const response = await fetch(chip.dataset.statusUrl, {
         headers: {"Accept": "application/json"},
         credentials: "same-origin"
       });
@@ -199,25 +339,36 @@
       if (polling) return;
       polling = true;
       try {
-        while (runPanel.dataset.statusUrl) {
+        while (chip.dataset.statusUrl) {
           const data = await readRun();
           showRun(data);
           if (data.status !== "queued" && data.status !== "running") break;
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
       } catch (error) {
-        runMessage.textContent = `Could not read run status: ${error.message}`;
-        runButtons.forEach(button => button.disabled = false);
+        showError(`Could not read run status: ${error.message}`);
       } finally {
         polling = false;
       }
     }
 
-    for (const form of document.querySelectorAll(".run-tools form")) {
+    chip.addEventListener("click", () => { openDialog(); renderLog(false); });
+    document.getElementById("run-close").addEventListener("click", () => dialog.close());
+    dialog.addEventListener("click", event => { if (event.target === dialog) dialog.close(); });
+    problemsOnly.addEventListener("change", () => renderLog(false));
+    document.addEventListener("click", event => {
+      if (!runMenu.contains(event.target)) runMenu.open = false;
+    });
+
+    for (const form of document.querySelectorAll("#run-menu form")) {
       form.addEventListener("submit", async event => {
         event.preventDefault();
+        runMenu.open = false;
         runButtons.forEach(button => button.disabled = true);
-        runMessage.textContent = "Requesting run…";
+        runMessage.textContent = "Requesting run\u2026";
+        statusLine.textContent = "Requesting run\u2026";
+        resultList.replaceChildren();
+        openDialog();
         try {
           const response = await fetch(form.action, {
             method: "POST",
@@ -230,20 +381,40 @@
             throw new Error(data.error || `Request failed (${response.status})`);
           }
           if (data.run_id) {
-            runPanel.dataset.runId = data.run_id;
-            runPanel.dataset.statusUrl = data.status_url;
+            chip.dataset.runId = data.run_id;
+            chip.dataset.statusUrl = data.status_url;
             pollRun();
           } else {
             throw new Error(data.error || "The run could not be queued.");
           }
         } catch (error) {
-          runMessage.textContent = error.message;
-          runButtons.forEach(button => button.disabled = false);
+          showError(error.message);
         }
       });
     }
 
-    if (runPanel.dataset.runId) pollRun();
+    const themeButton = document.getElementById("theme-toggle");
+    const themeLabels = {auto: "Theme: Auto", light: "Theme: Light", dark: "Theme: Dark"};
+    const themeOrder = ["auto", "light", "dark"];
+    function currentTheme() {
+      const t = document.documentElement.dataset.theme;
+      return t === "light" || t === "dark" ? t : "auto";
+    }
+    function applyTheme(theme) {
+      if (theme === "auto") delete document.documentElement.dataset.theme;
+      else document.documentElement.dataset.theme = theme;
+      themeButton.textContent = themeLabels[theme];
+      try {
+        if (theme === "auto") localStorage.removeItem("rr-theme");
+        else localStorage.setItem("rr-theme", theme);
+      } catch (error) {}
+    }
+    themeButton.textContent = themeLabels[currentTheme()];
+    themeButton.addEventListener("click", () => {
+      applyTheme(themeOrder[(themeOrder.indexOf(currentTheme()) + 1) % themeOrder.length]);
+    });
+
+    if (chip.dataset.runId) pollRun();
   </script>
 </body>
 </html>
