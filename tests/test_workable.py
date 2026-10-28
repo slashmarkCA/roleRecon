@@ -46,6 +46,19 @@ def test_parse_board_url_accepts_board_and_job_page_paths():
     assert board["list_url"] == "https://apply.workable.com/example/jobs.md"
 
 
+def test_parse_board_url_preserves_search_filters_for_the_list_request():
+    board = workable.parse_board_url(
+        "https://apply.workable.com/example/?lng=en"
+        "&location%5B0%5D%5Bcountry%5D=Canada"
+        "&location%5B0%5D%5Bregion%5D=Ontario"
+    )
+    assert board["list_url"] == (
+        "https://apply.workable.com/example/jobs.md?lng=en"
+        "&location%5B0%5D%5Bcountry%5D=Canada"
+        "&location%5B0%5D%5Bregion%5D=Ontario"
+    )
+
+
 def test_parse_board_url_rejects_non_workable_host():
     with pytest.raises(ValueError, match="Expected a Workable"):
         workable.parse_board_url("https://example.com/jobs")

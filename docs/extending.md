@@ -7,6 +7,8 @@ If the employer uses a platform that already has an adapter (see the table in
 
 For Workable, use the public account board URL (`https://apply.workable.com/<account>/`).
 The adapter reads the public Markdown list and each selected posting's Markdown detail page.
+If the board needs a location or other search filter, include its query parameters in the URL;
+the adapter preserves them when requesting the list.
 
 1. Open the employer's career page and copy its URL. Find its platform in the adapter table in
    [architecture.md](architecture.md); the "Board URL looks like" column shows what to paste

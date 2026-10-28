@@ -1,7 +1,7 @@
 import html
 import re
 from datetime import datetime, timezone
-from urllib.parse import urlparse
+from urllib.parse import parse_qsl, urlencode, urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -20,10 +20,12 @@ def parse_board_url(board_url):
     if parsed.netloc.lower() != "apply.workable.com" or not parts:
         raise ValueError("Expected a Workable board URL like apply.workable.com/<account>")
     slug = parts[0]
+    query = urlencode(parse_qsl(parsed.query, keep_blank_values=True))
     return {
         "slug": slug,
         "board_url": f"https://apply.workable.com/{slug}/",
-        "list_url": f"https://apply.workable.com/{slug}/jobs.md",
+        "list_url": f"https://apply.workable.com/{slug}/jobs.md"
+        + (f"?{query}" if query else ""),
     }
 
 

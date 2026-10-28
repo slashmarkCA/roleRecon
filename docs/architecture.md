@@ -109,6 +109,7 @@ not yet implemented; the registry marks those explicitly.
 | Adapter | Platform | Board URL looks like | How it gets the data |
 |---|---|---|---|
 | `ashby.py` | Ashby | `jobs.ashbyhq.com/<board>` | Public posting API returns the listed jobs and full descriptions in one JSON response. |
+| `avature.py` | Avature | `<host>/<locale>/<portal>/SearchJobs/` | Paginated public HTML job cards and per-job detail pages. Preserve board query parameters to keep its filters. |
 | `ultipro.py` | UltiPro / UKG | `recruiting.ultipro.ca/<tenant>/JobBoard/<id>` | POST to `/JobBoardView/LoadSearchResults` for the list; the detail page embeds the posting as JSON. |
 | `workday.py` | Workday | `<tenant>.wd3.myworkdayjobs.com/<site>` | Public JSON API under `/wday/cxs/<tenant>/<site>`: `/jobs` for the list and the job's path for the detail. |
 | `greenhouse.py` | Greenhouse | `job-boards.greenhouse.io/<board>` | One call to the public Job Board API, descriptions included. |
@@ -116,9 +117,9 @@ not yet implemented; the registry marks those explicitly.
 | `oracle_hcm.py` | Oracle Recruiting Cloud | `<host>.oraclecloud.com/hcmUI/CandidateExperience/.../sites/<site>/...` | `hcmRestApi` list and detail endpoints. |
 | `jobbank.py` | Job Bank (Canada) | the full Atom feed URL | Atom feed with title, employer, location and salary; no descriptions. Many employers in one feed, so each job carries its own `company`. |
 | `erecruit.py` | Virtuo HR eRecruit (MediSolution) | `<host>/erecruit/...` (any page under it, or the `RSS.aspx` feed) | The site's `RSS.aspx` feed. It is malformed (the real postings sit in an HTML block after the closed `<rss>`), so it is read with a pattern, not an XML parser. It includes full descriptions, so no detail request is needed. |
-| `successfactors.py` | SAP SuccessFactors | `<host>/<site>/go/Category-Page-<name>/<id>/` | The category's public RSS feed at `/services/rss/category/?catid=<id>`. It includes full descriptions, so no detail request is needed. |
+| `successfactors.py` | SAP SuccessFactors | Category page `<host>/<site>/go/Category-Page-<name>/<id>/` or search page `<host>/search/` | Category pages use public RSS with full descriptions; paginated search pages use public HTML results and posting descriptions. |
 | `phenom.py` | Phenom CareerConnect | `<host>/<country>/<language>/search-results` | The `/widgets` JSON endpoint returns paginated job records with description teasers; each job page exposes the full description as `JobPosting` JSON-LD. Known limitation: the search request currently has a Canada/Ontario location filter written into the code. |
-| `workable.py` | Workable | `apply.workable.com/<account>` | Public `/jobs.md` list and per-job `/jobs/view/<id>.md` detail pages. |
+| `workable.py` | Workable | `apply.workable.com/<account>` | Public `/jobs.md` list and per-job `/jobs/view/<id>.md` detail pages. Board query filters are passed through to the list request. |
 | `jazzhr.py` | JazzHR | `<account>.applytojob.com/apply` | Public HTML job list and per-posting HTML description. |
 | `rippling.py` | Rippling | `ats.rippling.com/[<locale>/]<board>/jobs` | Public Next.js page data contains up to 1,000 job summaries; each posting page includes its description. |
 | `risepeople.py` | Rise People | `careers.risepeople.com/<company>/<language>` | Public careers API returns job summaries; a public position endpoint provides full descriptions. |
