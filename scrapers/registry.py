@@ -4,6 +4,7 @@ from types import ModuleType
 
 # A None module path marks a reserved adapter choice that is not implemented yet.
 ADAPTERS = {
+    "ashby": ("Ashby", "scrapers.ashby"),
     "ultipro": ("UltiPro / UKG", "scrapers.ultipro"),
     "workday": ("Workday", "scrapers.workday"),
     "bamboohr": ("BambooHR", "scrapers.bamboohr"),
@@ -14,6 +15,9 @@ ADAPTERS = {
     "successfactors": ("SuccessFactors", "scrapers.successfactors"),
     "phenom": ("Phenom", "scrapers.phenom"),
     "workable": ("Workable", "scrapers.workable"),
+    "jazzhr": ("JazzHR", "scrapers.jazzhr"),
+    "rippling": ("Rippling", "scrapers.rippling"),
+    "risepeople": ("Rise People", "scrapers.risepeople"),
     "lever": ("Lever", None),
     "html": ("Plain HTML page", None),
     "browser": ("Browser-rendered page", None),

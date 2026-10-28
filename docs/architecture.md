@@ -108,6 +108,7 @@ not yet implemented; the registry marks those explicitly.
 
 | Adapter | Platform | Board URL looks like | How it gets the data |
 |---|---|---|---|
+| `ashby.py` | Ashby | `jobs.ashbyhq.com/<board>` | Public posting API returns the listed jobs and full descriptions in one JSON response. |
 | `ultipro.py` | UltiPro / UKG | `recruiting.ultipro.ca/<tenant>/JobBoard/<id>` | POST to `/JobBoardView/LoadSearchResults` for the list; the detail page embeds the posting as JSON. |
 | `workday.py` | Workday | `<tenant>.wd3.myworkdayjobs.com/<site>` | Public JSON API under `/wday/cxs/<tenant>/<site>`: `/jobs` for the list and the job's path for the detail. |
 | `greenhouse.py` | Greenhouse | `job-boards.greenhouse.io/<board>` | One call to the public Job Board API, descriptions included. |
@@ -118,6 +119,9 @@ not yet implemented; the registry marks those explicitly.
 | `successfactors.py` | SAP SuccessFactors | `<host>/<site>/go/Category-Page-<name>/<id>/` | The category's public RSS feed at `/services/rss/category/?catid=<id>`. It includes full descriptions, so no detail request is needed. |
 | `phenom.py` | Phenom CareerConnect | `<host>/<country>/<language>/search-results` | The `/widgets` JSON endpoint returns paginated job records with description teasers; each job page exposes the full description as `JobPosting` JSON-LD. Known limitation: the search request currently has a Canada/Ontario location filter written into the code. |
 | `workable.py` | Workable | `apply.workable.com/<account>` | Public `/jobs.md` list and per-job `/jobs/view/<id>.md` detail pages. |
+| `jazzhr.py` | JazzHR | `<account>.applytojob.com/apply` | Public HTML job list and per-posting HTML description. |
+| `rippling.py` | Rippling | `ats.rippling.com/[<locale>/]<board>/jobs` | Public Next.js page data contains up to 1,000 job summaries; each posting page includes its description. |
+| `risepeople.py` | Rise People | `careers.risepeople.com/<company>/<language>` | Public careers API returns job summaries; a public position endpoint provides full descriptions. |
 
 How these endpoints were found: open the career site with the browser's developer tools on the
 Network tab and watch which request returns the job data. Prefer a JSON endpoint; then static
