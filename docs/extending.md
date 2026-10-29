@@ -19,6 +19,10 @@ Altis uses a custom Angular job portal. Its public JSON API can be called direct
 listing request to one or more exact location labels, add repeated `location` query parameters,
 for example `?location=Toronto%2C+ON&location=Oshawa%2C+ON`.
 
+SuccessFactors search pages may use either the traditional HTML results table or the public
+Recruiting Marketing React widget. The SuccessFactors adapter detects the widget from the page,
+then uses its `/services/recruiting/v1/jobs` endpoint and the board URL's search filters.
+
 1. Open the employer's career page and copy its URL. Find its platform in the adapter table in
    [architecture.md](architecture.md); the "Board URL looks like" column shows what to paste
    (for Workday, a link to a single job also works). If the platform is not in the table, see

@@ -17,6 +17,7 @@ and no database.
 | `test_filters.py` | Every filter rule with small made-up jobs: exclusions, include keywords, whole-word matching (`java` vs `javascript`), locations, work arrangement, flags, scoring, and loading the config file. |
 | `test_<platform>.py` (one per adapter) | The adapter's **parse** functions: given a small sample response, do we produce the right records? Also URL handling, such as extracting a Workday site name from a pasted job link. |
 | `test_altis.py` | Parses Altis list and detail JSON, validates the public job URLs, and checks its location-filter payload shape. |
+| `test_successfactors.py` | Also covers SuccessFactors' public Recruiting Marketing widget results, filters, pagination, and detail markup. |
 | `test_tigeranalytics.py` | Parses only the Canada cards embedded in Tiger Analytics' careers-page HTML and checks that a changed/missing result count is reported. |
 | `test_run_service.py` | Request retries and safe summaries, worker recovery from simulated database outages, and browser run-start validation/authentication. |
 

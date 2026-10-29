@@ -1,8 +1,9 @@
+import json
 import re
 from email.utils import parsedate_to_datetime
 import time
 from datetime import datetime, timezone
-from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
+from urllib.parse import parse_qsl, quote, unquote, urlencode, urljoin, urlparse, urlunparse
 import xml.etree.ElementTree as ET
 
 import requests
@@ -16,11 +17,143 @@ JOB_ID = re.compile(r"/(\d+)/?$")
 TITLE_LOCATION = re.compile(r"^(.*?)\s+\(([^()]*(?:,[^()]*)+)\)\s*$")
 PAGE_SIZE = 25
 MAX_JOBS = 500
+RECRUITING_API_PATH = "/services/recruiting/v1/jobs"
+RECRUITING_PAGE_SIZE = 10
 
 
 def _is_search_page(path):
     """Return whether a SuccessFactors path identifies a search-results page."""
     return path.rstrip("/").lower().endswith("/search")
+
+
+def _is_widget_search_page(page_html):
+    return "xweb/rmk-jobs-search" in page_html
+
+
+def _widget_locale(page_html):
+    match = re.search(r"\bcurrentLocale\s*:\s*['\"]([^'\"]+)['\"]", page_html)
+    if not match:
+        raise ValueError("SuccessFactors widget page is missing its current locale")
+    return match.group(1)
+
+
+def build_recruiting_payload(board_url, page_number, locale):
+    """Build the public Recruiting Marketing search request from board filters."""
+    query = dict(parse_qsl(urlparse(board_url).query, keep_blank_values=True))
+    try:
+        facet_filters = json.loads(query.get("facetFilters", "{}"))
+    except json.JSONDecodeError as exc:
+        raise ValueError("SuccessFactors facetFilters must contain valid JSON") from exc
+    if not isinstance(facet_filters, dict):
+        raise ValueError("SuccessFactors facetFilters must be a JSON object")
+
+    return {
+        "locale": locale,
+        "pageNumber": page_number,
+        "sortBy": query.get("sortBy", ""),
+        "keywords": query.get("q", ""),
+        "location": query.get("locationsearch", ""),
+        "facetFilters": facet_filters,
+        "brand": query.get("brand", ""),
+        "skills": [],
+        "categoryId": 0,
+        "alertId": "",
+        "rcmCandidateId": "",
+    }
+
+
+def parse_recruiting_results(data, board_url, locale):
+    """Parse the public SuccessFactors Recruiting Marketing jobs response."""
+    if not isinstance(data, dict) or not isinstance(data.get("jobSearchResult"), list):
+        raise ValueError("SuccessFactors recruiting response is missing its job list")
+
+    parsed_board = urlparse(board_url)
+    records = []
+    for item in data["jobSearchResult"]:
+        job = item.get("response") if isinstance(item, dict) else None
+        if not isinstance(job, dict):
+            continue
+        job_id = str(job.get("id") or "").strip()
+        title = str(job.get("unifiedStandardTitle") or "").strip()
+        url_title = str(job.get("unifiedUrlTitle") or job.get("urlTitle") or "").strip()
+        if not job_id or not title or not url_title:
+            continue
+
+        slug = quote(unquote(url_title), safe="-")
+        locations = job.get("jobLocationShort") or []
+        if isinstance(locations, str):
+            locations = [locations]
+        location = ", ".join(
+            value.strip() for value in locations if isinstance(value, str) and value.strip()
+        )
+        posted_at = None
+        start_date = job.get("unifiedStandardStart")
+        if start_date:
+            try:
+                posted_at = datetime.strptime(start_date, "%d/%m/%Y").replace(
+                    tzinfo=timezone.utc
+                )
+            except (TypeError, ValueError):
+                pass
+
+        records.append(JobRecord(
+            source_job_id=job_id,
+            url=f"{parsed_board.scheme}://{parsed_board.netloc}/job/{slug}/{job_id}-{locale}",
+            title=title,
+            location=location,
+            posted_at=posted_at,
+        ))
+    return records
+
+
+def fetch_recruiting_list(board_url, session, page_html):
+    parsed_board = urlparse(board_url)
+    locale = _widget_locale(page_html)
+    endpoint = f"{parsed_board.scheme}://{parsed_board.netloc}{RECRUITING_API_PATH}"
+    headers = {
+        **UA,
+        "Accept": "application/json, text/plain, */*",
+        "Content-Type": "application/json",
+        "Origin": f"{parsed_board.scheme}://{parsed_board.netloc}",
+        "Referer": board_url,
+    }
+    query = dict(parse_qsl(parsed_board.query, keep_blank_values=True))
+    try:
+        page_number = int(query.get("pageNumber", "0"))
+    except ValueError as exc:
+        raise ValueError("SuccessFactors pageNumber must be an integer") from exc
+
+    records = []
+    total = None
+    while len(records) < MAX_JOBS:
+        response = session.post(
+            endpoint,
+            json=build_recruiting_payload(board_url, page_number, locale),
+            headers=headers,
+            timeout=30,
+        )
+        response.raise_for_status()
+        data = response.json()
+        if not isinstance(data, dict) or not isinstance(data.get("jobSearchResult"), list):
+            raise ValueError("SuccessFactors recruiting request did not return job data")
+        if total is None:
+            try:
+                total = int(data["totalJobs"])
+            except (KeyError, TypeError, ValueError) as exc:
+                raise ValueError(
+                    "SuccessFactors recruiting response is missing totalJobs"
+                ) from exc
+
+        page = parse_recruiting_results(data, board_url, locale)
+        if data["jobSearchResult"] and not page:
+            raise ValueError("SuccessFactors recruiting response contains no valid jobs")
+        records.extend(page)
+        if not data["jobSearchResult"] or len(records) >= total:
+            break
+        page_number += 1
+        if len(records) < MAX_JOBS:
+            time.sleep(1)
+    return records[:MAX_JOBS]
 
 
 def feed_url(board_url):
@@ -89,10 +222,25 @@ def parse_search_detail(page_html):
     """Parse a SuccessFactors job detail page into plain text."""
     soup = BeautifulSoup(page_html, "html.parser")
     description = soup.select_one(".jobdescription")
-    if description is None:
-        raise ValueError("SuccessFactors job page is missing its description")
-    text = description.get_text("\n", strip=True)
+    if description is not None:
+        text = description.get_text("\n", strip=True)
+        if not text:
+            raise ValueError("SuccessFactors job page has an empty description")
+        return {"description": text}
+
+    job = soup.select_one(".job")
+    sections = job.select(".joblayouttoken") if job else []
+    description_sections = []
+    in_description = False
+    for section in sections:
+        section_text = section.get_text("\n", strip=True)
+        if section_text.startswith("Job Overview"):
+            in_description = True
+        if in_description and section_text:
+            description_sections.append(section_text)
+    text = "\n\n".join(description_sections)
     if not text:
+        raise ValueError("SuccessFactors job page is missing its description")
         raise ValueError("SuccessFactors job page has an empty description")
     return {"description": text}
 
@@ -146,6 +294,11 @@ def fetch_list(board_url, session=None):
         response.raise_for_status()
         return parse_feed(response.content)
 
+    first_response = session.get(board_url, headers=UA, timeout=30)
+    first_response.raise_for_status()
+    if _is_widget_search_page(first_response.text):
+        return fetch_recruiting_list(board_url, session, first_response.text)
+
     records = []
     offset = 0
     while len(records) < MAX_JOBS:
@@ -156,9 +309,12 @@ def fetch_list(board_url, session=None):
         ]
         if offset:
             query.append(("startrow", str(offset)))
-        page_url = urlunparse(parsed._replace(query=urlencode(query)))
-        response = session.get(page_url, headers=UA, timeout=30)
-        response.raise_for_status()
+        if offset:
+            page_url = urlunparse(parsed._replace(query=urlencode(query)))
+            response = session.get(page_url, headers=UA, timeout=30)
+            response.raise_for_status()
+        else:
+            response = first_response
         page = parse_search_results(response.text, board_url)
         records.extend(page)
         if len(page) < PAGE_SIZE:
