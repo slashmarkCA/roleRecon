@@ -3,6 +3,7 @@ from scrapers.registry import ADAPTERS, ADAPTER_CHOICES, get_adapter
 
 def test_all_registered_adapter_choices_are_preserved():
     assert {name for name, _label in ADAPTER_CHOICES} == {
+        "altis",
         "ashby",
         "avature",
         "ultipro",
@@ -15,6 +16,7 @@ def test_all_registered_adapter_choices_are_preserved():
         "successfactors",
         "phenom",
         "workable",
+        "tigeranalytics",
         "jazzhr",
         "rippling",
         "risepeople",

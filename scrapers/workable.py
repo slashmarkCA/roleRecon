@@ -143,15 +143,33 @@ def parse_job_detail(markdown):
         if type_match:
             fields["type"] = type_match.group(1).strip()
     posted_match = re.search(r"\bPosted\s+(\d{4}-\d{2}-\d{2})\b", metadata)
+    metadata_parts = [part.strip() for part in metadata.split("·")]
+    location = metadata_parts[1] if len(metadata_parts) >= 3 else ""
+    location_mode = ARRANGEMENT.search(location)
+    if location_mode:
+        if "workplace" not in fields:
+            fields["workplace"] = location_mode.group(1)
+        location = location[:location_mode.start()].strip()
+
+    workplace = fields.get("workplace", "").strip().lower().replace("_", "-")
+    if workplace in {"on-site", "onsite"}:
+        work_mode = "On-site"
+    elif workplace in {"remote", "hybrid"}:
+        work_mode = workplace.title()
+    else:
+        work_mode = workplace.replace("-", " ").title()
+
     description = _markdown_to_text("\n".join(description_lines))
     if not in_description or not description:
         raise ValueError("Workable job detail is missing its description")
     detail = {
         "description": description,
-        "work_mode": fields.get("workplace", "").replace("-", " ").title(),
+        "work_mode": work_mode,
         "employment_type": fields.get("type", ""),
         "salary_text": fields.get("salary", ""),
     }
+    if location:
+        detail["location"] = location
     if posted_match:
         detail["posted_at"] = _parse_date(posted_match.group(1))
     if title:

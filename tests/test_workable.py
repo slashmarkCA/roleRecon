@@ -107,11 +107,17 @@ def test_parse_job_detail_returns_plain_text_and_fields():
         "- Gather requirements.\n"
         "- Work with engineering teams."
     )
+    assert detail["location"] == "Toronto, Canada"
     assert detail["work_mode"] == "Hybrid"
     assert detail["employment_type"] == "Full-time"
     assert detail["salary_text"] == "CAD 75,000–85,000"
     assert detail["posted_at"] == datetime(2026, 10, 13, tzinfo=timezone.utc)
     assert detail["title"] == "Business Analyst"
+
+
+def test_parse_job_detail_normalizes_workable_on_site_value():
+    markdown = DETAIL.replace("**Workplace:** hybrid", "**Workplace:** on_site")
+    assert workable.parse_job_detail(markdown)["work_mode"] == "On-site"
 
 
 def test_parse_job_detail_rejects_missing_description():

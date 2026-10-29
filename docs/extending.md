@@ -10,6 +10,15 @@ The adapter reads the public Markdown list and each selected posting's Markdown 
 If the board needs a location or other search filter, include its query parameters in the URL;
 the adapter preserves them when requesting the list.
 
+Tiger Analytics is a special case: its Canada-filtered cards are already embedded in the public
+careers page, and each card links to a Workable posting. Use the `Tiger Analytics` adapter with
+the current-openings URL; the page's client-side filter does not require Playwright.
+
+Altis uses a custom Angular job portal. Its public JSON API can be called directly, so use the
+`Altis` adapter with `https://jobportal.altis.com/`; Playwright is not required. To limit the
+listing request to one or more exact location labels, add repeated `location` query parameters,
+for example `?location=Toronto%2C+ON&location=Oshawa%2C+ON`.
+
 1. Open the employer's career page and copy its URL. Find its platform in the adapter table in
    [architecture.md](architecture.md); the "Board URL looks like" column shows what to paste
    (for Workday, a link to a single job also works). If the platform is not in the table, see

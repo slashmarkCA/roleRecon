@@ -1,7 +1,7 @@
 import re
 import time
 from datetime import datetime, timezone
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -23,17 +23,28 @@ def parse_board_url(board_url):
         locale = segments.pop(0)
     site = segments[0]  # ignores anything after it, e.g. /details/... or /job/...
     tenant = u.netloc.split(".")[0]
+    query_params = parse_qs(u.query)
+    search_text = (
+        query_params.pop("searchText", None) or query_params.pop("q", [""])
+    )[0]
     return {
         "host": u.netloc,
         "tenant": tenant,
         "site": site,
         "locale": locale,
         "api_base": f"https://{u.netloc}/wday/cxs/{tenant}/{site}",
+        "applied_facets": query_params,
+        "search_text": search_text,
     }
 
 
-def build_search_payload(offset=0, limit=PAGE_SIZE, query=""):
-    return {"appliedFacets": {}, "limit": limit, "offset": offset, "searchText": query}
+def build_search_payload(offset=0, limit=PAGE_SIZE, query="", applied_facets=None):
+    return {
+        "appliedFacets": applied_facets or {},
+        "limit": limit,
+        "offset": offset,
+        "searchText": query,
+    }
 
 
 def parse_search_results(data, board_url):
@@ -78,10 +89,16 @@ def parse_detail(data):
 
 def fetch_list(board_url, session=None, max_jobs=MAX_JOBS):
     session = session or requests.Session()
-    url = parse_board_url(board_url)["api_base"] + "/jobs"
+    board = parse_board_url(board_url)
+    url = board["api_base"] + "/jobs"
     jobs, offset, total = [], 0, None
     while True:
-        r = session.post(url, json=build_search_payload(offset), headers=UA, timeout=30)
+        payload = build_search_payload(
+            offset,
+            query=board["search_text"],
+            applied_facets=board["applied_facets"],
+        )
+        r = session.post(url, json=payload, headers=UA, timeout=30)
         r.raise_for_status()
         data = r.json()
         if total is None:  # Workday reports the total on the first page only

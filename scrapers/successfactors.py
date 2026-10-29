@@ -18,6 +18,11 @@ PAGE_SIZE = 25
 MAX_JOBS = 500
 
 
+def _is_search_page(path):
+    """Return whether a SuccessFactors path identifies a search-results page."""
+    return path.rstrip("/").lower().endswith("/search")
+
+
 def feed_url(board_url):
     """Convert a SuccessFactors category page to its public RSS category feed."""
     parsed = urlparse(board_url)
@@ -41,7 +46,7 @@ def feed_url(board_url):
 def parse_search_results(page_html, board_url):
     """Parse a SuccessFactors HTML search-results page."""
     parsed_board = urlparse(board_url)
-    if parsed_board.path.rstrip("/") != "/search":
+    if not _is_search_page(parsed_board.path):
         raise ValueError("Expected a SuccessFactors search-results URL")
 
     soup = BeautifulSoup(page_html, "html.parser")
@@ -136,7 +141,7 @@ def parse_feed(data):
 def fetch_list(board_url, session=None):
     session = session or requests.Session()
     parsed = urlparse(board_url)
-    if parsed.path.rstrip("/") != "/search":
+    if not _is_search_page(parsed.path):
         response = session.get(feed_url(board_url), headers=UA, timeout=30)
         response.raise_for_status()
         return parse_feed(response.content)

@@ -84,6 +84,12 @@ def test_parse_search_results_extracts_job_summary_fields():
     assert record.posted_at.tzinfo == timezone.utc
 
 
+def test_parse_search_results_accepts_a_tenant_prefixed_search_path():
+    board = "https://jobs.example.com/Tangerine/search/?q="
+    record, = successfactors.parse_search_results(SEARCH_PAGE, board)
+    assert record.url == "https://jobs.example.com/job/Toronto-Analyst-ON/12345/"
+
+
 def test_parse_search_results_rejects_unrecognized_html():
     with pytest.raises(ValueError, match="missing its results table"):
         successfactors.parse_search_results("<html></html>", SEARCH)

@@ -1,3 +1,4 @@
+from unittest.mock import Mock
 from datetime import timezone
 
 from scrapers import workday
@@ -26,11 +27,48 @@ def test_parse_board_url_from_a_single_job_link():
 def test_parse_board_url_with_query_and_no_locale():
     b = workday.parse_board_url("https://acme.wd3.myworkdayjobs.com/Careers?jobFamilyGroup=abc&jobFamilyGroup=def")
     assert b["tenant"] == "acme" and b["site"] == "Careers" and b["locale"] == "en-US"
+    assert b["applied_facets"] == {"jobFamilyGroup": ["abc", "def"]}
 
 
 def test_search_payload_pages_with_offset():
     payload = workday.build_search_payload(offset=40)
     assert payload["offset"] == 40 and payload["limit"] == workday.PAGE_SIZE
+
+
+def test_search_payload_includes_applied_facets_and_query():
+    payload = workday.build_search_payload(
+        query="analyst",
+        applied_facets={"locationCountry": ["canada-id"]},
+    )
+    assert payload["searchText"] == "analyst"
+    assert payload["appliedFacets"] == {"locationCountry": ["canada-id"]}
+
+
+def test_parse_board_url_extracts_repeated_facets_and_search_text():
+    board = workday.parse_board_url(
+        "https://acme.wd3.myworkdayjobs.com/Careers"
+        "?locationCountry=canada-id&locationCountry=us-id&searchText=analyst"
+    )
+    assert board["applied_facets"] == {
+        "locationCountry": ["canada-id", "us-id"],
+    }
+    assert board["search_text"] == "analyst"
+
+
+def test_fetch_list_passes_board_facets_to_workday_api():
+    response = Mock()
+    response.json.return_value = {"total": 0, "jobPostings": []}
+    session = Mock()
+    session.post.return_value = response
+    board = (
+        "https://example.wd3.myworkdayjobs.com/Careers"
+        "?locationCountry=canada-id"
+    )
+
+    assert workday.fetch_list(board, session=session) == []
+    assert session.post.call_args.kwargs["json"]["appliedFacets"] == {
+        "locationCountry": ["canada-id"],
+    }
 
 
 def test_parse_search_results_skips_entries_without_a_path():
