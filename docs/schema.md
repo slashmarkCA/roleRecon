@@ -16,9 +16,30 @@ One row per career site (or feed) that is checked.
 | `name` | Unique display name, e.g. `Acme Corp`. |
 | `adapter` | Which adapter handles it, chosen from the registry in `scrapers/registry.py` (see the table in [architecture.md](architecture.md)). A few entries (`lever`, `html`, `browser`, `linkedin`) are reserved and have no adapter yet. |
 | `board_url` | The career page or feed URL. Each adapter documents what it expects; extra parts such as `?query` strings and `/details/...` are ignored where noted. |
-| `options` | JSON settings for this employer. Today: `{"location_override": "Toronto"}`. Use `{}` when there are none. |
+| `options` | JSON settings for this employer. Currently supports `location_override` for vague locations and optional Phenom location/pagination settings. Use `{}` when there are none. |
 | `active` | Untick to skip an employer without deleting it or its jobs. |
 | `notes` | Free text. |
+
+Phenom options live under a `phenom` object. With no `phenom` settings, the adapter preserves
+its current Canada/Ontario filter, 50-job page size and 500-job cap. For example:
+
+```json
+{
+  "phenom": {
+    "location": {
+      "country": ["Canada"],
+      "state": ["Ontario"],
+      "city": ["Toronto"]
+    },
+    "page_size": 50,
+    "max_jobs": 500
+  }
+}
+```
+
+`location` accepts `country`, `state` and `city` arrays of exact labels. If specified, it
+replaces the default location filters; use `"location": {}` to search without location facets.
+`page_size` and `max_jobs` must be positive integers.
 
 ## Job
 

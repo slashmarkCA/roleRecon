@@ -87,9 +87,9 @@ def _apply_detail(record, detail):
             setattr(record, key, value)
 
 
-def _list_limit(adapter, board_url):
+def _list_limit(adapter, board_url, options=None):
     func = getattr(adapter, "list_limit", None)
-    return func(board_url) if func else getattr(adapter, "MAX_JOBS", None)
+    return func(board_url, options=options) if func else getattr(adapter, "MAX_JOBS", None)
 
 
 def _save_progress(run, *, current=None, total=None, message=None):
@@ -128,8 +128,12 @@ def _process_employer(run, employer, session, config, position, total):
             logger.warning("Scrape run %s: %s: %s", run.pk, employer.name, message)
             return
 
+        options = employer.options
+        if not isinstance(options, dict):
+            raise ValueError(f"{employer.name} options must be a JSON object")
+
         records = _request_with_retry(
-            lambda: adapter.fetch_list(employer.board_url, session),
+            lambda: adapter.fetch_list(employer.board_url, session, options=options),
             f"{employer.name} job list",
         )
         found = len(records)
@@ -155,7 +159,9 @@ def _process_employer(run, employer, session, config, position, total):
             if outcome.keep or not outcome.reason.startswith(TITLE_REASONS):
                 try:
                     detail = _request_with_retry(
-                        lambda: adapter.fetch_detail(employer.board_url, record, session),
+                        lambda: adapter.fetch_detail(
+                            employer.board_url, record, session, options=options
+                        ),
                         f"{employer.name} detail for {record.title}",
                     )
                     _apply_detail(record, detail)
@@ -170,11 +176,7 @@ def _process_employer(run, employer, session, config, position, total):
                 time.sleep(1)
                 outcome = evaluate(record, employer.name, config)
 
-            override = (
-                employer.options.get("location_override")
-                if isinstance(employer.options, dict)
-                else None
-            )
+            override = options.get("location_override")
             if override:
                 record.location = f"{override} ({record.location})" if record.location else override
                 outcome = evaluate(record, employer.name, config)
@@ -212,7 +214,7 @@ def _process_employer(run, employer, session, config, position, total):
             )
         summary = f"{len(records)} found, {new} new ({kept} kept, {filtered} filtered{reason_summary})"
         warnings = []
-        limit = _list_limit(adapter, employer.board_url)
+        limit = _list_limit(adapter, employer.board_url, options)
         if limit and len(records) >= limit:
             warnings.append(f"returned its {limit}-job limit; results may be incomplete")
         if not records:

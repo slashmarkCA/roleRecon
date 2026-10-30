@@ -87,7 +87,7 @@ def parse_detail(data):
     }
 
 
-def fetch_list(board_url, session=None, max_jobs=MAX_JOBS):
+def fetch_list(board_url, session=None, max_jobs=MAX_JOBS, options=None):
     session = session or requests.Session()
     board = parse_board_url(board_url)
     url = board["api_base"] + "/jobs"
@@ -111,7 +111,7 @@ def fetch_list(board_url, session=None, max_jobs=MAX_JOBS):
         time.sleep(1)
 
 
-def fetch_detail(board_url, rec, session=None):
+def fetch_detail(board_url, rec, session=None, options=None):
     session = session or requests.Session()
     url = parse_board_url(board_url)["api_base"] + rec.source_job_id
     r = session.get(url, headers={**UA, "Accept": "application/json"}, timeout=30)

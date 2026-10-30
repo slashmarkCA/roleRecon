@@ -52,7 +52,7 @@ def parse_jobs(data, board_url):
     return jobs
 
 
-def fetch_list(board_url, session=None):
+def fetch_list(board_url, session=None, options=None):
     """One request returns every job with its full description (content=true)."""
     session = session or requests.Session()
     url = f"{API}/{parse_board_token(board_url)}/jobs"
@@ -61,5 +61,5 @@ def fetch_list(board_url, session=None):
     return parse_jobs(r.json(), board_url)
 
 
-def fetch_detail(board_url, rec, session=None):
+def fetch_detail(board_url, rec, session=None, options=None):
     return {}  # the list response already includes the description

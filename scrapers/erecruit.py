@@ -70,12 +70,12 @@ def parse_feed(data, board_url=""):
     return jobs
 
 
-def fetch_list(board_url, session=None):
+def fetch_list(board_url, session=None, options=None):
     session = session or requests.Session()
     r = session.get(feed_url(board_url), headers=UA, timeout=60)
     r.raise_for_status()
     return parse_feed(r.content, board_url)
 
 
-def fetch_detail(board_url, rec, session=None):
+def fetch_detail(board_url, rec, session=None, options=None):
     return {}  # the feed already includes the full description

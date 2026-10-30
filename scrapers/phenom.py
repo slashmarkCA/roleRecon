@@ -15,6 +15,7 @@ MAX_JOBS = 500
 PAGE_ID = "page15-ds"
 UA = {"User-Agent": "roleRecon/0.1 (personal job-search tool)"}
 ALL_FIELDS = ["category", "country", "city", "state", "type", "phLocSlider"]
+DEFAULT_LOCATION_FILTERS = {"country": ["Canada"], "state": ["Ontario"]}
 
 
 def parse_board_url(board_url):
@@ -32,7 +33,10 @@ def parse_board_url(board_url):
     }
 
 
-def build_search_payload(offset=0, limit=PAGE_SIZE):
+def build_search_payload(offset=0, limit=PAGE_SIZE, location_filters=None):
+    selected_fields = (
+        DEFAULT_LOCATION_FILTERS if location_filters is None else location_filters
+    )
     return {
         "lang": "en_us",
         "deviceType": "desktop",
@@ -54,7 +58,7 @@ def build_search_payload(offset=0, limit=PAGE_SIZE):
         "siteType": "external",
         "keywords": "",
         "global": True,
-        "selected_fields": {"country": ["Canada"], "state": ["Ontario"]},
+        "selected_fields": selected_fields,
         "locationData": {
             "sliderRadius": 50,
             "aboveMaxRadius": True,
@@ -157,9 +161,62 @@ def parse_search_results(data, board_url):
     return records
 
 
-def fetch_list(board_url, session=None):
+def _validated_options(options):
+    if options is None:
+        options = {}
+    if not isinstance(options, dict):
+        raise ValueError("Employer options must be a JSON object")
+
+    phenom_options = options.get("phenom", {})
+    if not isinstance(phenom_options, dict):
+        raise ValueError("Employer option 'phenom' must be a JSON object")
+    unknown_options = set(phenom_options) - {"location", "page_size", "max_jobs"}
+    if unknown_options:
+        names = ", ".join(sorted(unknown_options))
+        raise ValueError(f"Unknown Phenom option(s): {names}")
+
+    location = phenom_options.get("location")
+    if location is None:
+        location_filters = DEFAULT_LOCATION_FILTERS
+    else:
+        if not isinstance(location, dict):
+            raise ValueError("Phenom option 'location' must be a JSON object")
+        unknown_fields = set(location) - {"country", "state", "city"}
+        if unknown_fields:
+            names = ", ".join(sorted(unknown_fields))
+            raise ValueError(f"Unknown Phenom location field(s): {names}")
+        location_filters = {}
+        for field, values in location.items():
+            if not isinstance(values, list) or not all(
+                isinstance(value, str) and value.strip() for value in values
+            ):
+                raise ValueError(
+                    f"Phenom location field '{field}' must be a list of non-empty strings"
+                )
+            location_filters[field] = values
+
+    page_size = phenom_options.get("page_size", PAGE_SIZE)
+    if isinstance(page_size, bool) or not isinstance(page_size, int) or page_size < 1:
+        raise ValueError("Phenom option 'page_size' must be a positive integer")
+    max_jobs = phenom_options.get("max_jobs", MAX_JOBS)
+    if isinstance(max_jobs, bool) or not isinstance(max_jobs, int) or max_jobs < 1:
+        raise ValueError("Phenom option 'max_jobs' must be a positive integer")
+
+    return {
+        "location_filters": location_filters,
+        "page_size": page_size,
+        "max_jobs": max_jobs,
+    }
+
+
+def list_limit(board_url, options=None):
+    return _validated_options(options)["max_jobs"]
+
+
+def fetch_list(board_url, session=None, options=None):
     session = session or requests.Session()
     board = parse_board_url(board_url)
+    settings = _validated_options(options)
     headers = {
         **UA,
         "Accept": "application/json, text/plain, */*",
@@ -175,7 +232,11 @@ def fetch_list(board_url, session=None):
     while True:
         response = session.post(
             endpoint,
-            json=build_search_payload(offset=offset),
+            json=build_search_payload(
+                offset=offset,
+                limit=settings["page_size"],
+                location_filters=settings["location_filters"],
+            ),
             headers=headers,
             timeout=30,
         )
@@ -197,13 +258,13 @@ def fetch_list(board_url, session=None):
                 raise ValueError("Phenom search response is missing totalHits") from exc
         page = parse_search_results(data, board_url)
         records.extend(page)
-        offset += PAGE_SIZE
-        if not page or offset >= total or len(records) >= MAX_JOBS:
-            return records[:MAX_JOBS]
+        offset += settings["page_size"]
+        if not page or offset >= total or len(records) >= settings["max_jobs"]:
+            return records[:settings["max_jobs"]]
         time.sleep(1)
 
 
-def fetch_detail(board_url, rec, session=None):
+def fetch_detail(board_url, rec, session=None, options=None):
     session = session or requests.Session()
     board = parse_board_url(board_url)
     response = session.get(

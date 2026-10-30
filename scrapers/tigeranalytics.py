@@ -76,14 +76,14 @@ def parse_detail(markdown):
     return parse_job_detail(markdown)
 
 
-def fetch_list(board_url, session=None):
+def fetch_list(board_url, session=None, options=None):
     session = session or requests.Session()
     response = session.get(parse_board_url(board_url), headers=UA, timeout=30)
     response.raise_for_status()
     return parse_job_list(response.text, board_url)
 
 
-def fetch_detail(board_url, rec, session=None):
+def fetch_detail(board_url, rec, session=None, options=None):
     parse_board_url(board_url)
     parsed_url = urlparse(rec.url)
     match = WORKABLE_JOB_PATH.fullmatch(parsed_url.path)

@@ -177,7 +177,7 @@ def parse_job_detail(markdown):
     return detail
 
 
-def fetch_list(board_url, session=None):
+def fetch_list(board_url, session=None, options=None):
     session = session or requests.Session()
     list_url = parse_board_url(board_url)["list_url"]
     response = session.get(list_url, headers=UA, timeout=30)
@@ -185,7 +185,7 @@ def fetch_list(board_url, session=None):
     return parse_job_list(response.text, board_url)
 
 
-def fetch_detail(board_url, rec, session=None):
+def fetch_detail(board_url, rec, session=None, options=None):
     parse_board_url(board_url)
     session = session or requests.Session()
     response = session.get(

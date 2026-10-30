@@ -121,7 +121,7 @@ def parse_job_detail(data):
     }
 
 
-def fetch_list(board_url, session=None):
+def fetch_list(board_url, session=None, options=None):
     session = session or requests.Session()
     board = parse_board_url(board_url)
     response = session.post(
@@ -134,7 +134,7 @@ def fetch_list(board_url, session=None):
     return parse_job_list(response.json(), board_url)
 
 
-def fetch_detail(board_url, rec, session=None):
+def fetch_detail(board_url, rec, session=None, options=None):
     parse_board_url(board_url)
     parsed_url = urlparse(rec.url)
     match = re.fullmatch(r"/jobs/(\d+)(?:/[^/]*)?/?", parsed_url.path)

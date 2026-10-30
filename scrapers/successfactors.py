@@ -286,7 +286,7 @@ def parse_feed(data):
     return records
 
 
-def fetch_list(board_url, session=None):
+def fetch_list(board_url, session=None, options=None):
     session = session or requests.Session()
     parsed = urlparse(board_url)
     if not _is_search_page(parsed.path):
@@ -325,7 +325,7 @@ def fetch_list(board_url, session=None):
     return records[:MAX_JOBS]
 
 
-def fetch_detail(board_url, rec, session=None):
+def fetch_detail(board_url, rec, session=None, options=None):
     if rec.description:
         return {}
     board_host = urlparse(board_url).netloc.lower()

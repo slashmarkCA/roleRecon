@@ -54,14 +54,14 @@ def parse_detail(data):
     }
 
 
-def fetch_list(board_url, session=None):
+def fetch_list(board_url, session=None, options=None):
     session = session or requests.Session()
     r = session.get(f"{_base(board_url)}/careers/list", headers=UA, timeout=30)
     r.raise_for_status()
     return parse_list(r.json(), board_url)
 
 
-def fetch_detail(board_url, rec, session=None):
+def fetch_detail(board_url, rec, session=None, options=None):
     session = session or requests.Session()
     r = session.get(f"{_base(board_url)}/careers/{rec.source_job_id}/detail", headers=UA, timeout=30)
     r.raise_for_status()

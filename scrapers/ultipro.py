@@ -71,7 +71,7 @@ def parse_detail_html(html):
     return BeautifulSoup(obj.get("Description") or "", "html.parser").get_text("\n", strip=True)
 
 
-def fetch_list(board_url, session=None, max_jobs=MAX_JOBS):
+def fetch_list(board_url, session=None, max_jobs=MAX_JOBS, options=None):
     session = session or requests.Session()
     url = normalize_board_url(board_url) + "/JobBoardView/LoadSearchResults"
     jobs, skip = [], 0
@@ -94,5 +94,5 @@ def fetch_description(job_url, session=None):
     return parse_detail_html(r.text)
 
 
-def fetch_detail(board_url, rec, session=None):
+def fetch_detail(board_url, rec, session=None, options=None):
     return {"description": fetch_description(rec.url, session)}

@@ -83,7 +83,7 @@ def parse_detail(data):
     }
 
 
-def fetch_list(board_url, session=None, max_jobs=MAX_JOBS):
+def fetch_list(board_url, session=None, max_jobs=MAX_JOBS, options=None):
     session = session or requests.Session()
     jobs, seen, offset = [], set(), 0
     while True:
@@ -99,7 +99,7 @@ def fetch_list(board_url, session=None, max_jobs=MAX_JOBS):
             return jobs
 
 
-def fetch_detail(board_url, rec, session=None):
+def fetch_detail(board_url, rec, session=None, options=None):
     session = session or requests.Session()
     b = parse_board_url(board_url)
     url = (f"{b['api_base']}/recruitingCEJobRequisitionDetails?expand=all&onlyData=true"

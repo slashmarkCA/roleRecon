@@ -105,7 +105,7 @@ def parse_job_detail(page_html):
     return {"description": description}
 
 
-def fetch_list(board_url, session=None):
+def fetch_list(board_url, session=None, options=None):
     session = session or requests.Session()
     current_url = parse_board_url(board_url)["search_url"]
     records = []
@@ -125,7 +125,7 @@ def fetch_list(board_url, session=None):
     return records[:MAX_JOBS]
 
 
-def fetch_detail(board_url, rec, session=None):
+def fetch_detail(board_url, rec, session=None, options=None):
     board = parse_board_url(board_url)
     parsed_url = urlparse(rec.url)
     if parsed_url.netloc != board["host"] or DETAIL_PATH.search(parsed_url.path) is None:

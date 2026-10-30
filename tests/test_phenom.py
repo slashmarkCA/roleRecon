@@ -1,3 +1,4 @@
+from unittest.mock import Mock, call
 from datetime import datetime, timezone
 
 import pytest
@@ -52,6 +53,73 @@ def test_build_search_payload_includes_pagination_and_location_filter():
         "country": ["Canada"],
         "state": ["Ontario"],
     }
+
+
+def test_build_search_payload_accepts_custom_location_filters():
+    payload = phenom.build_search_payload(
+        location_filters={"country": ["Canada"], "city": ["Toronto"]}
+    )
+    assert payload["selected_fields"] == {
+        "country": ["Canada"],
+        "city": ["Toronto"],
+    }
+
+
+def test_fetch_list_uses_employer_location_and_pagination_options(monkeypatch):
+    first_page = Mock()
+    first_page.json.return_value = {
+        "eagerLoadRefineSearch": SAMPLE["eagerLoadRefineSearch"] | {
+            "totalHits": 4,
+            "data": {"jobs": SAMPLE["eagerLoadRefineSearch"]["data"]["jobs"][:2]},
+        }
+    }
+    second_page = Mock()
+    second_page.json.return_value = {
+        "eagerLoadRefineSearch": SAMPLE["eagerLoadRefineSearch"] | {
+            "totalHits": 4,
+            "data": {"jobs": SAMPLE["eagerLoadRefineSearch"]["data"]["jobs"][:2]},
+        }
+    }
+    session = Mock()
+    session.post.side_effect = [first_page, second_page]
+    monkeypatch.setattr(phenom.time, "sleep", lambda _seconds: None)
+    options = {
+        "phenom": {
+            "location": {"country": ["Canada"], "city": ["Toronto"]},
+            "page_size": 2,
+            "max_jobs": 3,
+        }
+    }
+
+    records = phenom.fetch_list(BOARD, session=session, options=options)
+
+    assert len(records) == 3
+    assert [request.kwargs["json"]["from"] for request in session.post.call_args_list] == [
+        0,
+        2,
+    ]
+    assert all(
+        request.kwargs["json"]["size"] == 2
+        and request.kwargs["json"]["selected_fields"] == {
+            "country": ["Canada"],
+            "city": ["Toronto"],
+        }
+        for request in session.post.call_args_list
+    )
+    assert phenom.list_limit(BOARD, options=options) == 3
+
+
+@pytest.mark.parametrize(
+    ("options", "message"),
+    [
+        ({"phenom": {"page_size": 0}}, "page_size.*positive integer"),
+        ({"phenom": {"location": {"city": "Toronto"}}}, "city.*list"),
+        ({"phenom": {"unknown": True}}, "Unknown Phenom option"),
+    ],
+)
+def test_fetch_list_rejects_invalid_employer_options(options, message):
+    with pytest.raises(ValueError, match=message):
+        phenom.fetch_list(BOARD, session=Mock(), options=options)
 
 
 def test_parse_search_results_extracts_standard_job_records():

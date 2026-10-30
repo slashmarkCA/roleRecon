@@ -88,7 +88,7 @@ def parse_jobs(data, board_url):
     return records
 
 
-def fetch_list(board_url, session=None):
+def fetch_list(board_url, session=None, options=None):
     session = session or requests.Session()
     slug = parse_board_slug(board_url)
     response = session.get(f"{API}/{slug}", headers=UA, timeout=30)
@@ -96,5 +96,5 @@ def fetch_list(board_url, session=None):
     return parse_jobs(response.json(), board_url)
 
 
-def fetch_detail(board_url, rec, session=None):
+def fetch_detail(board_url, rec, session=None, options=None):
     return {}

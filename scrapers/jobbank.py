@@ -46,13 +46,13 @@ def parse_feed(xml, board_url=""):
     return jobs
 
 
-def list_limit(board_url):
+def list_limit(board_url, options=None):
     """The feed returns at most its `rows` parameter's worth of entries (None if not set)."""
     m = re.search(r"[?&]rows=(\d+)", board_url)
     return int(m.group(1)) if m else None
 
 
-def fetch_list(board_url, session=None):
+def fetch_list(board_url, session=None, options=None):
     """board_url is the full Job Bank feed URL (with its query string)."""
     session = session or requests.Session()
     r = session.get(board_url, headers=UA, timeout=30)
@@ -60,5 +60,5 @@ def fetch_list(board_url, session=None):
     return parse_feed(r.content, board_url)
 
 
-def fetch_detail(board_url, rec, session=None):
+def fetch_detail(board_url, rec, session=None, options=None):
     return {}  # the feed has no description; the posting page would need separate parsing

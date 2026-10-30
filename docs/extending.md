@@ -23,6 +23,10 @@ SuccessFactors search pages may use either the traditional HTML results table or
 Recruiting Marketing React widget. The SuccessFactors adapter detects the widget from the page,
 then uses its `/services/recruiting/v1/jobs` endpoint and the board URL's search filters.
 
+Employer Options are passed to each adapter's list and detail functions. For Phenom, use a
+`phenom` object to set exact `location` facets and adjust `page_size` or `max_jobs`; see the
+[Employer options example](schema.md#employer) for the shape and defaults.
+
 1. Open the employer's career page and copy its URL. Find its platform in the adapter table in
    [architecture.md](architecture.md); the "Board URL looks like" column shows what to paste
    (for Workday, a link to a single job also works). If the platform is not in the table, see
