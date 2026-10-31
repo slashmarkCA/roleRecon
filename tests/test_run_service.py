@@ -90,6 +90,83 @@ def test_start_run_rejects_unknown_operation():
     assert json.loads(response.content) == {"error": "Choose a valid operation."}
 
 
+@pytest.mark.parametrize("status", ["new", "saved", "applied", "ignored"])
+def test_bulk_set_status_updates_only_submitted_jobs(monkeypatch, status):
+    class QuerySet:
+        def __init__(self, job_ids):
+            self.job_ids = job_ids
+            self.updated_status = None
+
+        def count(self):
+            return len(self.job_ids)
+
+        def update(self, **kwargs):
+            self.updated_status = kwargs["status"]
+            return len(self.job_ids)
+
+    class Manager:
+        def filter(self, *, pk__in):
+            queryset = QuerySet(pk__in)
+            querysets.append(queryset)
+            return queryset
+
+    querysets = []
+    monkeypatch.setattr(views.Job, "objects", Manager())
+    request = RequestFactory().post(
+        "/jobs/status/",
+        {"job_ids": ["12", "27"], "status": status, "qs": "status=new"},
+    )
+    request.user = SimpleNamespace(is_authenticated=True)
+
+    response = views.bulk_set_status(request)
+
+    assert response.status_code == 302
+    assert response.url == "/?status=new"
+    assert querysets[0].job_ids == [12, 27]
+    assert querysets[0].updated_status == status
+
+
+@pytest.mark.parametrize(
+    ("data", "error"),
+    [
+        ({"job_ids": ["12"], "status": "filtered"}, "Choose a valid job status."),
+        ({"job_ids": ["not-an-id"], "status": "new"}, "positive integers."),
+        ({"job_ids": [], "status": "new"}, "Select between 1 and 200 jobs."),
+    ],
+)
+def test_bulk_set_status_rejects_invalid_input(monkeypatch, data, error):
+    monkeypatch.setattr(
+        views.Job,
+        "objects",
+        SimpleNamespace(filter=lambda **_kwargs: pytest.fail("database must not be queried")),
+    )
+    request = RequestFactory().post("/jobs/status/", data)
+    request.user = SimpleNamespace(is_authenticated=True)
+
+    response = views.bulk_set_status(request)
+
+    assert response.status_code == 400
+    assert error in response.content.decode()
+
+
+def test_bulk_set_status_rejects_missing_job_ids(monkeypatch):
+    class QuerySet:
+        def count(self):
+            return 1
+
+    monkeypatch.setattr(views.Job, "objects", SimpleNamespace(filter=lambda **_kwargs: QuerySet()))
+    request = RequestFactory().post(
+        "/jobs/status/",
+        {"job_ids": ["12", "27"], "status": "saved"},
+    )
+    request.user = SimpleNamespace(is_authenticated=True)
+
+    response = views.bulk_set_status(request)
+
+    assert response.status_code == 400
+    assert b"could not be found" in response.content
+
+
 def test_worker_retries_database_operational_errors(monkeypatch, caplog):
     attempts = []
     delays = []

@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
 from django.db.models import Count, Q
-from django.http import JsonResponse
+from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -66,6 +66,32 @@ def set_status(request, pk):
     if new_status in Job.Status.values:
         job.status = new_status
         job.save(update_fields=["status"])
+    return redirect(f"{reverse('job_list')}?{request.POST.get('qs', '')}")
+
+
+@require_POST
+@login_required(login_url="/admin/login/")
+def bulk_set_status(request):
+    new_status = request.POST.get("status", "")
+    if new_status not in {
+        Job.Status.NEW,
+        Job.Status.SAVED,
+        Job.Status.APPLIED,
+        Job.Status.IGNORED,
+    }:
+        return HttpResponseBadRequest("Choose a valid job status.")
+
+    raw_ids = request.POST.getlist("job_ids")
+    if not raw_ids or len(raw_ids) > LIST_LIMIT:
+        return HttpResponseBadRequest(f"Select between 1 and {LIST_LIMIT} jobs.")
+    if any(not value.isdigit() or int(value) < 1 for value in raw_ids):
+        return HttpResponseBadRequest("Selected job IDs must be positive integers.")
+
+    job_ids = list(dict.fromkeys(int(value) for value in raw_ids))
+    jobs = Job.objects.filter(pk__in=job_ids)
+    if jobs.count() != len(job_ids):
+        return HttpResponseBadRequest("One or more selected jobs could not be found.")
+    jobs.update(status=new_status)
     return redirect(f"{reverse('job_list')}?{request.POST.get('qs', '')}")
 
 

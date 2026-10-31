@@ -36,6 +36,15 @@
     a { color: var(--accent); text-decoration: none; }
     header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
              padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+    .bulkbar { flex: 0 0 100%; display: flex; align-items: center; gap: 8px;
+               padding-top: 8px; border-top: 1px solid var(--line); }
+    .bulkbar .selection-count { color: var(--muted); font-size: 13px; margin-right: auto; }
+    .bulkbar input[type="checkbox"], .row-select { width: 18px; height: 18px; padding: 0; accent-color: var(--accent); }
+    .row-entry { display: flex; align-items: flex-start; gap: 8px; padding: 10px 14px;
+                 border-bottom: 1px solid var(--line); }
+    .row-entry:hover { background: var(--panel); }
+    .row-entry.sel { background: var(--sel); }
+    .row-select { flex: 0 0 auto; margin: 3px 0 0; cursor: pointer; }
     header h1 { font-size: 17px; margin: 0 4px 0 0; }
     .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
     .tabs a { padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--text); }
@@ -88,7 +97,7 @@
 
     main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(300px, 38%) 1fr; }
     .list { overflow-y: auto; border-right: 1px solid var(--line); }
-    .row { display: block; padding: 10px 14px; border-bottom: 1px solid var(--line); color: var(--text); }
+    .row { display: block; flex: 1; min-width: 0; color: var(--text); }
     .row:hover { background: var(--panel); }
     .row.sel { background: var(--sel); }
     .row .t { font-weight: 600; }
@@ -151,6 +160,20 @@
       <button type="button" id="theme-toggle" title="Switch theme">Theme: Auto</button>
       <a href="/admin/">Admin</a>
     </div>
+    <form class="bulkbar" method="post" action="{% url 'bulk_set_status' %}" id="bulk-status-form">
+      {% csrf_token %}
+      <input type="hidden" name="qs" value="{{ full_qs }}">
+      <span class="selection-count" id="selection-count" role="status" aria-live="polite">0 jobs selected</span>
+      <label for="bulk-status">Set selected to</label>
+      <select name="status" id="bulk-status" required>
+        <option value="">Choose status</option>
+        <option value="new">New (Back to New)</option>
+        <option value="saved">Saved</option>
+        <option value="applied">Applied</option>
+        <option value="ignored">Ignored</option>
+      </select>
+      <button type="submit" id="bulk-status-submit" disabled>Update selected</button>
+    </form>
   </header>
 
   <dialog id="run-dialog" aria-labelledby="run-title">
@@ -181,15 +204,18 @@
   <main>
     <section class="list">
       {% for job in jobs %}
-        <a class="row{% if selected and selected.pk == job.pk %} sel{% endif %}"
-           href="?{{ base_qs }}&amp;job={{ job.pk }}">
-          <div class="t">{{ job.title }}{% if job.score %}<span class="badge score">{{ job.score }}</span>{% endif %}</div>
-          <div class="m">
-            {{ job.company|default:job.employer.name }} &middot; {{ job.location|default:"location unknown" }}
-            {% for f in job.flags %}<span class="badge flag">{{ f }}</span>{% endfor %}
-          </div>
-          {% if job.status == 'filtered' %}<div class="m">{{ job.filter_reason }}</div>{% endif %}
-        </a>
+        <div class="row-entry{% if selected and selected.pk == job.pk %} sel{% endif %}">
+          <input class="row-select" type="checkbox" name="job_ids" value="{{ job.pk }}"
+                 form="bulk-status-form" aria-label="Select {{ job.title }}">
+          <a class="row" href="?{{ base_qs }}&amp;job={{ job.pk }}">
+            <div class="t">{{ job.title }}{% if job.score %}<span class="badge score">{{ job.score }}</span>{% endif %}</div>
+            <div class="m">
+              {{ job.company|default:job.employer.name }} &middot; {{ job.location|default:"location unknown" }}
+              {% for f in job.flags %}<span class="badge flag">{{ f }}</span>{% endfor %}
+            </div>
+            {% if job.status == 'filtered' %}<div class="m">{{ job.filter_reason }}</div>{% endif %}
+          </a>
+        </div>
       {% empty %}
         <div class="empty">No jobs match this view.</div>
       {% endfor %}
@@ -222,7 +248,7 @@
           <form method="post" action="{% url 'set_status' selected.pk %}">{% csrf_token %}
             <input type="hidden" name="qs" value="{{ full_qs }}">
             <input type="hidden" name="status" value="ignored"><button>Ignore</button></form>
-          {% if selected.status == 'saved' or selected.status == 'ignored' %}
+          {% if selected.status != 'new' %}
             <form method="post" action="{% url 'set_status' selected.pk %}">{% csrf_token %}
               <input type="hidden" name="qs" value="{{ full_qs }}">
               <input type="hidden" name="status" value="new"><button>Back to New</button></form>
@@ -235,6 +261,23 @@
     </section>
   </main>
   <script>
+    const bulkStatusForm = document.getElementById("bulk-status-form");
+    const bulkStatusSubmit = document.getElementById("bulk-status-submit");
+    const selectionCount = document.getElementById("selection-count");
+    const selectedJobBoxes = [...document.querySelectorAll(".row-select")];
+
+    function updateBulkSelection() {
+      const selectedCount = selectedJobBoxes.filter(box => box.checked).length;
+      selectionCount.textContent = `${selectedCount} job${selectedCount === 1 ? "" : "s"} selected`;
+      bulkStatusSubmit.disabled = selectedCount === 0 || !document.getElementById("bulk-status").value;
+    }
+
+    selectedJobBoxes.forEach(box => box.addEventListener("change", updateBulkSelection));
+    document.getElementById("bulk-status").addEventListener("change", updateBulkSelection);
+    bulkStatusForm.addEventListener("submit", event => {
+      if (!selectedJobBoxes.some(box => box.checked)) event.preventDefault();
+    });
+
     const chip = document.getElementById("run-panel");
     const runMessage = document.getElementById("run-message");
     const dialog = document.getElementById("run-dialog");

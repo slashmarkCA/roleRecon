@@ -36,7 +36,10 @@ background worker. For each **active** employer in the database it does the foll
 8. **Browse.** `python manage.py runserver` serves the two-pane page at
    `http://127.0.0.1:8000/`. Login is required; unauthenticated visitors are redirected to the
    Django admin login and returned to the job page after signing in. The page and its status
-   updates require an authenticated Django account (code in [`jobs/views.py`](../jobs/views.py)
+   updates require an authenticated Django account. Select individual visible jobs with the
+   checkboxes and use the separate bulk-action bar to set them to New, Saved, Applied or Ignored.
+   Bulk actions apply only to explicitly selected jobs, up to the 200-job list limit. (Code in
+   [`jobs/views.py`](../jobs/views.py)
    and [`jobs/templates/jobs/job_list.html`](../jobs/templates/jobs/job_list.html)).
 
 If a job has no description stored (because it was rejected on its title, or the source has
