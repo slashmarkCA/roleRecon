@@ -27,6 +27,23 @@ Employer Options are passed to each adapter's list and detail functions. For Phe
 `phenom` object to set exact `location` facets and adjust `page_size` or `max_jobs`; see the
 [Employer options example](schema.md#employer) for the shape and defaults.
 
+JSearch is a paid-quota aggregator adapter. Set `OPENWEBNINJA_API_KEY` in `.env`, then configure
+its Employer Options with explicit search queries, for example:
+
+```json
+{
+  "queries": ["business analyst jobs in Toronto", "QA jobs in Ajax"],
+  "country": "ca",
+  "date_posted": "month",
+  "max_pages": 1
+}
+```
+
+Each search query costs up to `max_pages` request credits. JSearch is limited to 30 request
+credits per scrape; the adapter rejects a configuration above that limit before sending any
+requests. Keep the Employer inactive until you are ready to spend credits. The API key is read
+from the environment and must not be stored in Employer Options.
+
 1. Open the employer's career page and copy its URL. Find its platform in the adapter table in
    [architecture.md](architecture.md); the "Board URL looks like" column shows what to paste
    (for Workday, a link to a single job also works). If the platform is not in the table, see

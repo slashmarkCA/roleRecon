@@ -114,6 +114,7 @@ not yet implemented; the registry marks those explicitly.
 | `ultipro.py` | UltiPro / UKG | `recruiting.ultipro.ca/<tenant>/JobBoard/<id>` | POST to `/JobBoardView/LoadSearchResults` for the list; the detail page embeds the posting as JSON. |
 | `workday.py` | Workday | `<tenant>.wd3.myworkdayjobs.com/<site>` | Public JSON API under `/wday/cxs/<tenant>/<site>`: `/jobs` for the list and the job's path for the detail. URL query filters are passed as `appliedFacets`; `q` or `searchText` is passed as the API search text. |
 | `greenhouse.py` | Greenhouse | `job-boards.greenhouse.io/<board>` | One call to the public Job Board API, descriptions included. |
+| `jsearch.py` | OpenWeb Ninja JSearch (Google for Jobs aggregator) | `api.openwebninja.com/jsearch/search-v2` | Searches configured Canada-focused queries and returns descriptions, publisher and apply link. Requires `OPENWEBNINJA_API_KEY`; query count × pages is charged, with a 30-credit per-scrape safety limit. |
 | `bamboohr.py` | BambooHR | `<name>.bamboohr.com/careers` | `/careers/list` and `/careers/<id>/detail`. |
 | `oracle_hcm.py` | Oracle Recruiting Cloud | `<host>.oraclecloud.com/hcmUI/CandidateExperience/.../sites/<site>/...` | `hcmRestApi` list and detail endpoints. |
 | `jobbank.py` | Job Bank (Canada) | the full Atom feed URL | Atom feed with title, employer, location and salary; no descriptions. Many employers in one feed, so each job carries its own `company`. |

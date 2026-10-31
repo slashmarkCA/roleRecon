@@ -15,6 +15,7 @@ def test_all_registered_adapter_choices_are_preserved():
         "jobbank",
         "erecruit",
         "greenhouse",
+        "jsearch",
         "successfactors",
         "phenom",
         "workable",

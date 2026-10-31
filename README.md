@@ -70,6 +70,7 @@ migrate` (database not up to date), or check `DATABASE_URL` in `.env`.
 |---|---|
 | `python manage.py scrape` | Run a scrape inline for every active employer; logs each employer's summary and returns a non-zero exit status if any employer fails or warns. |
 | `python manage.py refilter` | Re-apply your current `search_config.json` to stored jobs (no network). **Run it after editing the config.** |
+| `python manage.py import_jsearch_pilot` | Import saved JSearch pilot results from `data/jsearch-pilot-2026-10-30.md` without calling JSearch; pass `--dry-run` to preview. |
 | `python manage.py runserver` | Start the web page at `http://127.0.0.1:8000/` (admin at `/admin/`). Stop with Ctrl+C. |
 | `python manage.py run_job_worker` | Process browser-requested scrapes and refilters. Keep it running alongside the web server; stop with Ctrl+C. |
 | `python manage.py makemigrations jobs` | After changing `jobs/models.py`: write a migration file. |

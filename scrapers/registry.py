@@ -14,6 +14,7 @@ ADAPTERS = {
     "jobbank": ("Job Bank (Atom feed)", "scrapers.jobbank"),
     "erecruit": ("Virtuo HR eRecruit (RSS feed)", "scrapers.erecruit"),
     "greenhouse": ("Greenhouse", "scrapers.greenhouse"),
+    "jsearch": ("JSearch (OpenWeb Ninja)", "scrapers.jsearch"),
     "successfactors": ("SuccessFactors", "scrapers.successfactors"),
     "phenom": ("Phenom", "scrapers.phenom"),
     "workable": ("Workable", "scrapers.workable"),
