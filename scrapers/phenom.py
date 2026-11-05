@@ -3,7 +3,7 @@ import json
 import re
 import time
 from datetime import datetime, timezone
-from urllib.parse import quote, urlparse
+from urllib.parse import parse_qs, quote, urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -24,16 +24,32 @@ def parse_board_url(board_url):
     if len(parts) < 3 or parts[-1] != "search-results":
         raise ValueError("Expected a Phenom search-results URL")
     country, language = parts[-3:-1]
-    return {
+    query = parse_qs(parsed.query)
+    board = {
         "origin": f"{parsed.scheme}://{parsed.netloc}",
         "country": country,
         "lang": f"{language}_{country}".lower(),
         "search_url": f"{parsed.scheme}://{parsed.netloc}/{country}/{language}/search-results",
         "job_base": f"{parsed.scheme}://{parsed.netloc}/{country}/{language}/job",
     }
+    place_id = (query.get("p") or [""])[0].strip()
+    place_value = (query.get("location") or [""])[0].strip()
+    if place_id and place_value:
+        board["location_data"] = {
+            "place_id": place_id,
+            "latitude": "",
+            "longitude": "",
+            "aboveMaxRadius": True,
+            "placeVal": place_value,
+            "sliderRadius": 50,
+            "locationRangeEnd": 100,
+            "sliderDelta": 1,
+            "LocationUnit": "miles",
+        }
+    return board
 
 
-def build_search_payload(offset=0, limit=PAGE_SIZE, location_filters=None):
+def build_search_payload(offset=0, limit=PAGE_SIZE, location_filters=None, location_data=None):
     selected_fields = (
         DEFAULT_LOCATION_FILTERS if location_filters is None else location_filters
     )
@@ -59,7 +75,7 @@ def build_search_payload(offset=0, limit=PAGE_SIZE, location_filters=None):
         "keywords": "",
         "global": True,
         "selected_fields": selected_fields,
-        "locationData": {
+        "locationData": location_data or {
             "sliderRadius": 50,
             "aboveMaxRadius": True,
             "LocationUnit": "kilometers",
@@ -230,12 +246,16 @@ def fetch_list(board_url, session=None, options=None):
     total = None
 
     while True:
+        location_filters = dict(settings["location_filters"])
+        if board.get("location_data"):
+            location_filters["phLocSlider"] = [board["location_data"]["placeVal"]]
         response = session.post(
             endpoint,
             json=build_search_payload(
                 offset=offset,
                 limit=settings["page_size"],
-                location_filters=settings["location_filters"],
+                location_filters=location_filters,
+                location_data=board.get("location_data"),
             ),
             headers=headers,
             timeout=30,

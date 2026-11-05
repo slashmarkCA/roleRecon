@@ -45,6 +45,25 @@ def test_parse_board_url():
     }
 
 
+def test_parse_board_url_preserves_pheno_place_search():
+    board = phenom.parse_board_url(
+        "https://careers.example.com/global/en/search-results"
+        "?p=example-place-id&location=Oshawa%2C%20ON%2C%20Canada"
+    )
+
+    assert board["location_data"] == {
+        "place_id": "example-place-id",
+        "latitude": "",
+        "longitude": "",
+        "aboveMaxRadius": True,
+        "placeVal": "Oshawa, ON, Canada",
+        "sliderRadius": 50,
+        "locationRangeEnd": 100,
+        "sliderDelta": 1,
+        "LocationUnit": "miles",
+    }
+
+
 def test_build_search_payload_includes_pagination_and_location_filter():
     payload = phenom.build_search_payload(offset=50, limit=25)
     assert payload["ddoKey"] == "eagerLoadRefineSearch"
@@ -53,6 +72,22 @@ def test_build_search_payload_includes_pagination_and_location_filter():
         "country": ["Canada"],
         "state": ["Ontario"],
     }
+    assert payload["locationData"] == {
+        "sliderRadius": 50,
+        "aboveMaxRadius": True,
+        "LocationUnit": "kilometers",
+    }
+
+
+def test_build_search_payload_uses_location_data_from_board_url():
+    location_data = {
+        "place_id": "example-place-id",
+        "placeVal": "Oshawa, ON, Canada",
+        "sliderRadius": 50,
+    }
+    payload = phenom.build_search_payload(location_data=location_data)
+
+    assert payload["locationData"] == location_data
 
 
 def test_build_search_payload_accepts_custom_location_filters():
@@ -107,6 +142,32 @@ def test_fetch_list_uses_employer_location_and_pagination_options(monkeypatch):
         for request in session.post.call_args_list
     )
     assert phenom.list_limit(BOARD, options=options) == 3
+
+
+def test_fetch_list_sends_place_filter_from_board_url(monkeypatch):
+    response = Mock()
+    response.json.return_value = {
+        "eagerLoadRefineSearch": {
+            "status": 200,
+            "totalHits": 0,
+            "data": {"jobs": []},
+        }
+    }
+    session = Mock()
+    session.post.return_value = response
+    board_url = (
+        "https://careers.example.com/global/en/search-results"
+        "?p=example-place-id&location=Oshawa%2C%20ON%2C%20Canada"
+    )
+
+    assert phenom.fetch_list(board_url, session=session, options={}) == []
+    assert session.post.call_args.kwargs["json"]["locationData"]["place_id"] == "example-place-id"
+    assert session.post.call_args.kwargs["json"]["locationData"]["placeVal"] == "Oshawa, ON, Canada"
+    assert session.post.call_args.kwargs["json"]["selected_fields"] == {
+        "country": ["Canada"],
+        "state": ["Ontario"],
+        "phLocSlider": ["Oshawa, ON, Canada"],
+    }
 
 
 @pytest.mark.parametrize(
