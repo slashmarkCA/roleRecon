@@ -106,8 +106,8 @@ add an employer, find its platform's row and paste a URL shaped like the third c
 
 The adapter registry in [`scrapers/registry.py`](../scrapers/registry.py) is the code's single
 source for adapter names and labels. Django's admin choices and the scrape command both use it.
-Some choices (`lever`, `html`, `browser`, `linkedin`) are reserved for future adapters and are
-not yet implemented; the registry marks those explicitly.
+Some choices (`html`, `browser`, `linkedin`) are reserved for future adapters and are not yet
+implemented; the registry marks those explicitly.
 
 | Adapter | Platform | Board URL looks like | How it gets the data |
 |---|---|---|---|
@@ -117,6 +117,7 @@ not yet implemented; the registry marks those explicitly.
 | `ultipro.py` | UltiPro / UKG | `recruiting.ultipro.ca/<tenant>/JobBoard/<id>` | POST to `/JobBoardView/LoadSearchResults` for the list; the detail page embeds the posting as JSON. |
 | `workday.py` | Workday | `<tenant>.wd3.myworkdayjobs.com/<site>` | Public JSON API under `/wday/cxs/<tenant>/<site>`: `/jobs` for the list and the job's path for the detail. URL query filters are passed as `appliedFacets`; `q` or `searchText` is passed as the API search text. |
 | `greenhouse.py` | Greenhouse | `job-boards.greenhouse.io/<board>` | One call to the public Job Board API, descriptions included. |
+| `lever.py` | Lever | `jobs.lever.co/<site>` | Public postings API returns descriptions and structured job fields; no detail request is needed. |
 | `jsearch.py` | OpenWeb Ninja JSearch (Google for Jobs aggregator) | `api.openwebninja.com/jsearch/search-v2` | Searches configured Canada-focused queries and returns descriptions, publisher and apply link. Requires `OPENWEBNINJA_API_KEY`; query count × pages is charged, with a 30-credit per-scrape safety limit. |
 | `bamboohr.py` | BambooHR | `<name>.bamboohr.com/careers` | `/careers/list` and `/careers/<id>/detail`. |
 | `oracle_hcm.py` | Oracle Recruiting Cloud | `<host>.oraclecloud.com/hcmUI/CandidateExperience/.../sites/<site>/...` | `hcmRestApi` list and detail endpoints. |
@@ -129,6 +130,7 @@ not yet implemented; the registry marks those explicitly.
 | `jazzhr.py` | JazzHR | `<account>.applytojob.com/apply` | Public HTML job list and per-posting HTML description. |
 | `rippling.py` | Rippling | `ats.rippling.com/[<locale>/]<board>/jobs` | Public Next.js page data contains up to 1,000 job summaries; each posting page includes its description. |
 | `risepeople.py` | Rise People | `careers.risepeople.com/<company>/<language>` | Public careers API returns job summaries; a public position endpoint provides full descriptions. |
+| `pulsecraft.py` | PulseCraft custom Next.js careers page | `www.pulsecrafttechnologies.com/careers` | Parses the server-rendered public job cards and details. It reads pages only and never submits the site's application forms; the adapter is specific to this custom site because no shared ATS was identified. |
 
 How these endpoints were found: open the career site with the browser's developer tools on the
 Network tab and watch which request returns the job data. Prefer a JSON endpoint; then static

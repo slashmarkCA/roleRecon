@@ -24,6 +24,7 @@ def test_all_registered_adapter_choices_are_preserved():
         "rippling",
         "risepeople",
         "lever",
+        "pulsecraft",
         "html",
         "browser",
         "linkedin",

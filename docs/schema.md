@@ -14,7 +14,7 @@ One row per career site (or feed) that is checked.
 | Field | Meaning |
 |---|---|
 | `name` | Unique display name, e.g. `Acme Corp`. |
-| `adapter` | Which adapter handles it, chosen from the registry in `scrapers/registry.py` (see the table in [architecture.md](architecture.md)). A few entries (`lever`, `html`, `browser`, `linkedin`) are reserved and have no adapter yet. |
+| `adapter` | Which adapter handles it, chosen from the registry in `scrapers/registry.py` (see the table in [architecture.md](architecture.md)). A few entries (`html`, `browser`, `linkedin`) are reserved and have no adapter yet. |
 | `board_url` | The career page or feed URL. Each adapter documents what it expects; extra parts such as `?query` strings and `/details/...` are ignored where noted. |
 | `options` | JSON settings for this employer. Currently supports `location_override` for vague locations and optional Phenom location/pagination settings. Use `{}` when there are none. |
 | `active` | Untick to skip an employer without deleting it or its jobs. |
